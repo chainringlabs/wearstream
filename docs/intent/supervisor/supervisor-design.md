@@ -105,8 +105,8 @@ the run id and trigger and a pipe for the result. In order, the child:
 2. runs the job, collecting the capture outcomes of every capture it makes.
 3. writes one JSON result to the pipe: counts of captures written, skipped as identical, refused
    as non-2xx and failed, a short error summary, for an `environment` failure its errno and the
-   folder it happened in, and for a needed credential the source's credential fingerprint at the
-   moment it found the credential unusable.
+   folder it happened in, and, when the source reported a needed credential, that fact and the
+   source's credential fingerprint at the moment it found the credential unusable.
 4. exits with the code that describes the run, choosing the first that applies: `75` if it
    received a stop signal; `3` if any capture failed with `error_kind` `environment` (the child
    ends the job at the first one, making no further requests); `4` if the source reported that
@@ -167,7 +167,9 @@ the result supplies counts, and a missing or malformed result leaves the counts 
 
 ### Credential needed
 
-When a source unit ends `needs_auth`, the source enters `waiting_for_auth`: its queue is
+When a source unit ends `needs_auth`, or its result reports a needed credential whatever its
+outcome (a stop signal can end a unit just after the source found its credential dead), the
+source enters `waiting_for_auth`: its queue is
 emptied, its ticks and backfill stop, and the supervisor records the **credential
 fingerprint** the child reported in its result: the source's fingerprint of the credential it
 found unusable, computed without a network call. (If the result carries none, the supervisor
@@ -231,8 +233,9 @@ source's queue is empty, with the job's `backfill_pause` between units.
   collections has data for its day, records the day as known-empty. A success that still leaves
   the day without data must not leave it missing forever. A known-empty day is fetched once more 30 days later (sources can sync late); if
   it is empty again, it stays known-empty.
-- **Attempts.** A backfill unit ending other than `success` or `interrupted` (after any repair)
-  is one failed attempt for its day; a shutdown is not the day's fault. After three, the day is skipped, reported once at WARNING, and listed by
+- **Attempts.** A backfill unit ending other than `success`, `interrupted` or `busy` (after any
+  repair) is one failed attempt for its day; a shutdown or a lock held by someone else is not the
+  day's fault. After three, the day is skipped, reported once at WARNING, and listed by
   `wearstream status`.
 - **Moving the start.** An earlier `BACKFILL_FROM` makes the next pass walk further; a later one
   ends the current pass at the new start.
@@ -247,12 +250,15 @@ In order, a hand-started run:
 1. checks the heartbeat: if the daemon is running with capture paused, it exits `3` with a
    message saying why; if no daemon is running, it runs the capture `self_test` itself and exits
    `3` if that fails;
-2. takes the source lock (exiting `5` if it is held);
-3. records itself in `inflight.json`, with its pid and its pid namespace, and in the run log;
-4. runs the job under its own time limit: when the job's `time_limit` passes, it stops itself as
+2. checks `sources/<source>.json`: if the source is waiting for a credential, it exits `4` with a
+   message saying to run `wearstream auth <source>`, because running would present a credential
+   the source already found unusable;
+3. takes the source lock (exiting `5` if it is held);
+4. records itself in `inflight.json`, with its pid and its pid namespace, and in the run log;
+5. runs the job under its own time limit: when the job's `time_limit` passes, it stops itself as
    if it had received `SIGTERM`, and ends the process outright 45 seconds later if it is still
    running;
-5. records its finish and updates the job's `needs_refill` set, then removes its `inflight.json`
+6. records its finish and updates the job's `needs_refill` set, then removes its `inflight.json`
    entry.
 
 A hand-started run is not a tick and counts toward neither catch-up nor failing jobs. Because it
@@ -278,7 +284,7 @@ rename, fsync the folder). The run log is JSON Lines, appended one line per writ
 | `heartbeat.json` | Daemon pid, phase (`starting`, `running`, `stopping`), last update, capture pause reason and next retry, each source's status |
 | `inflight.json` | Units started and not yet finished and repaired: run id, source, job, day, trigger, start time, `daemon` or `manual` |
 | `jobs/<source>.<job>.json` | Last tick, last completed tick, consecutive failed ticks |
-| `sources/<source>.json` | `active` or `waiting_for_auth`, since when, recorded credential fingerprint, first-run date, last reminder |
+| `sources/<source>.json` | `active` or `waiting_for_auth`, since when, recorded credential fingerprint, first-run date, last reminder; read by checks and hand-started runs, where a missing document means `active` |
 | `backfill/<source>.<job>.json` | Pass position and pending-restart flag, `needs_refill` days, known-empty days with the date each was recorded, failed-attempt counts |
 | `runs/<YYYY-MM>.jsonl` | Run log: a `start` and a `finish` line per unit (trigger, day, outcome, exit code, duration, counts, error summary), and a `repaired` line after repair; the 13 most recent monthly files are kept |
 | `locks/` | Source and checks lock files, and `state.lock` |
