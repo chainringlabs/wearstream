@@ -104,8 +104,9 @@ the run id and trigger and a pipe for the result. In order, the child:
    lock is held until the process exits; the kernel releases it however the process dies.
 2. runs the job, collecting the capture outcomes of every capture it makes.
 3. writes one JSON result to the pipe: counts of captures written, skipped as identical, refused
-   as non-2xx and failed, a short error summary, and for an `environment` failure its errno and
-   the folder it happened in.
+   as non-2xx and failed, a short error summary, for an `environment` failure its errno and the
+   folder it happened in, and for a needed credential the source's credential fingerprint at the
+   moment it found the credential unusable.
 4. exits with the code that describes the run, choosing the first that applies: `75` if it
    received a stop signal; `3` if any capture failed with `error_kind` `environment` (the child
    ends the job at the first one, making no further requests); `4` if the source reported that
@@ -167,10 +168,13 @@ the result supplies counts, and a missing or malformed result leaves the counts 
 ### Credential needed
 
 When a source unit ends `needs_auth`, the source enters `waiting_for_auth`: its queue is
-emptied, its ticks and backfill stop, and the supervisor records a fingerprint of the source's
-credential (provided by the source, without a network call) and logs an ERROR telling the
-operator to run `wearstream auth <source>` (for example `docker exec -it <container> wearstream
-auth <source>`). At each of the source's fire times it asks for the fingerprint again; when it
+emptied, its ticks and backfill stop, and the supervisor records the **credential
+fingerprint** the child reported in its result: the source's fingerprint of the credential it
+found unusable, computed without a network call. (If the result carries none, the supervisor
+computes it itself.) Recording what the child saw, rather than reading it afterwards, means a
+new credential written in the meantime is never mistaken for the dead one. The supervisor logs
+an ERROR telling the operator to run `wearstream auth <source>` (for example `docker exec -it
+<container> wearstream auth <source>`). Once a minute it computes the fingerprint again; when it
 **differs** from the recorded one, the source resumes and catch-up runs. A credential file that
 is present but unchanged (a revoked grant) does not resume the source. The ERROR is repeated at
 most once every 24 hours while the source waits. Checks units never change a source's state.
@@ -355,7 +359,8 @@ failure is logged at WARNING and escalated by the daemon's `run_crashed` and `jo
 ## Obligations on other components
 
 - **Sources** declare their jobs; report a needed credential so the child exits `4`; decide
-  which responses are failed requests; provide a credential fingerprint without a network call;
+  which responses are failed requests; provide a credential fingerprint without a network call,
+  taken at the moment the credential is found unusable and on request;
   mark each credential exchange so the child defers stop signals during it; keep every exchange
   within 40 seconds; and make every capture of a `partitioned` unit with that unit's day as
   `dt`.

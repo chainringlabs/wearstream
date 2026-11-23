@@ -34,7 +34,7 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 
 - [ ] **SUPERVISOR-CHILD-001**: When the supervisor starts a unit, it shall start `wearstream run` as a child in a new process group, passing the source, job, day where the job is `partitioned`, run id, trigger, and the write end of a dedicated result pipe.
 - [ ] **SUPERVISOR-CHILD-002**: When the child starts, it shall take a non-blocking exclusive `flock` on `/state/locks/<source>.lock` for a source unit or `/state/locks/<source>.checks.lock` for a checks unit, hold it until it exits, and exit with code 5 if the lock is held by another process.
-- [ ] **SUPERVISOR-CHILD-003**: Before exiting after running its job, the child shall write one JSON result to the result pipe holding the counts of captures written, skipped as identical, refused as non-2xx and failed, a short error summary, and, for a capture that failed with `error_kind` `environment`, its errno and the folder it happened in.
+- [ ] **SUPERVISOR-CHILD-003**: Before exiting after running its job, the child shall write one JSON result to the result pipe holding the counts of captures written, skipped as identical, refused as non-2xx and failed, a short error summary, for a capture that failed with `error_kind` `environment` its errno and the folder it happened in, and, when it exits 4, the source's credential fingerprint taken when the source found the credential unusable.
 - [ ] **SUPERVISOR-CHILD-004**: When the child receives a capture result with `error_kind` `environment`, it shall end its job without making further requests or captures.
 - [ ] **SUPERVISOR-CHILD-005**: When the child finishes its job, it shall exit with the first code that applies: 75 if it received a stop signal (`SIGTERM` or `SIGINT`, or its own time limit for a hand-started run); 3 if any capture failed with `error_kind` `environment`; 4 if the source reported that a person must provide a credential; 1 if the source reported a failed request or any capture ended `failed`; otherwise 0. A capture refused as non-2xx shall not by itself make the exit code 1.
 - [ ] **SUPERVISOR-CHILD-006**: If an unexpected exception reaches the child's top level, then the child shall log it at WARNING and exit with code 70.
@@ -64,8 +64,8 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 
 ## Credentials
 
-- [ ] **SUPERVISOR-AUTH-001**: When a source unit ends `needs_auth`, the supervisor shall put the source in `waiting_for_auth`, empty its queue, stop its ticks and backfill, record the source's credential fingerprint, and log `source_waiting_for_auth` at ERROR with an action telling the operator to run `wearstream auth <source>`.
-- [ ] **SUPERVISOR-AUTH-002**: While a source is in `waiting_for_auth`, the supervisor shall, at each of that source's fire times, obtain the source's credential fingerprint without a network call, and resume the source only when it differs from the recorded fingerprint.
+- [ ] **SUPERVISOR-AUTH-001**: When a source unit ends `needs_auth`, the supervisor shall put the source in `waiting_for_auth`, empty its queue, stop its ticks and backfill, record the credential fingerprint from the unit's result (or, if the result has none, compute the source's fingerprint itself), and log `source_waiting_for_auth` at ERROR with an action telling the operator to run `wearstream auth <source>`.
+- [ ] **SUPERVISOR-AUTH-002**: While a source is in `waiting_for_auth`, the supervisor shall, once a minute, obtain the source's credential fingerprint without a network call, and resume the source only when it differs from the recorded fingerprint.
 - [ ] **SUPERVISOR-AUTH-003**: While a source is in `waiting_for_auth`, the supervisor shall repeat `source_waiting_for_auth` at most once every 24 hours.
 - [ ] **SUPERVISOR-AUTH-004**: When a source leaves `waiting_for_auth`, the supervisor shall log `source_resumed` and run catch-up for that source's jobs.
 
