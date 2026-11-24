@@ -45,8 +45,9 @@ def test_dockerignore_covers_gitignore_plus_the_build_extras(root: Path) -> None
 
 
 # @spec DELIVERY-REL-002
-def test_version_between_releases_is_the_next_dev0(pyproject: dict) -> None:
-    assert re.fullmatch(r"\d+\.\d+\.\d+\.dev0", pyproject["project"]["version"])
+def test_version_is_a_release_or_the_next_dev0(pyproject: dict) -> None:
+    """`X.Y.Z.dev0` between releases; plain `X.Y.Z` only in a release's own pull request."""
+    assert re.fullmatch(r"\d+\.\d+\.\d+(\.dev0)?", pyproject["project"]["version"])
 
 
 # @spec DELIVERY-DEPS-001

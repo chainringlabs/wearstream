@@ -23,8 +23,25 @@ def _default(value: object) -> str:
     return str(value)
 
 
-def _release(pyproject: dict) -> str:
-    return re.sub(r"\.dev\d+$", "", pyproject["project"]["version"])
+def _numbers(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
+def _pinned_tag_fits(tag: str, pyproject: dict) -> bool:
+    """The reference deployments pin the latest release: the version itself at a release, and
+    an earlier release while `main` holds the next `.dev0`."""
+    version = pyproject["project"]["version"]
+    if not re.fullmatch(r"\d+\.\d+\.\d+", tag):
+        return False
+    if not version.endswith(".dev0"):
+        return tag == version
+    return _numbers(tag) < _numbers(version.removesuffix(".dev0"))
+
+
+def _tag(image: str) -> str:
+    repository, _, tag = image.partition(":")
+    assert repository == "ghcr.io/chainringlabs/wearstream"
+    return tag
 
 
 # @spec DELIVERY-DEPLOY-001
@@ -60,7 +77,7 @@ def ansible(root: Path) -> dict:
 
 # @spec DELIVERY-DEPLOY-002
 def test_compose_runs_a_pinned_hardened_container(compose: dict, pyproject: dict) -> None:
-    assert compose["image"] == f"ghcr.io/chainringlabs/wearstream:{_release(pyproject)}"
+    assert _pinned_tag_fits(_tag(compose["image"]), pyproject)
     assert (compose["container_name"], compose["restart"]) == ("wearstream", "unless-stopped")
     assert compose["read_only"] is True and compose["tmpfs"] == ["/tmp"]
     assert compose["cap_drop"] == ["ALL"]
@@ -86,7 +103,7 @@ def test_compose_binds_existing_host_folders_and_reads_an_env_file(compose: dict
 
 # @spec DELIVERY-DEPLOY-002
 def test_ansible_runs_a_pinned_hardened_container(ansible: dict, pyproject: dict) -> None:
-    assert ansible["image"] == f"ghcr.io/chainringlabs/wearstream:{_release(pyproject)}"
+    assert _pinned_tag_fits(_tag(ansible["image"]), pyproject)
     assert (ansible["name"], ansible["restart_policy"]) == ("wearstream", "unless-stopped")
     assert ansible["read_only"] is True and ansible["tmpfs"] == ["/tmp"]
     assert ansible["cap_drop"] == ["ALL"]

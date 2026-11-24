@@ -1,6 +1,6 @@
 [project]
 name = "wearstream"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Self-hosted capture of your raw Whoop and Garmin Connect data"
 readme = "README.md"
 license = "MIT"
