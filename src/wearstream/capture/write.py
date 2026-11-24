@@ -4,6 +4,7 @@ append-only."""
 from __future__ import annotations
 
 import datetime as dt
+import errno as errno_names
 import hashlib
 import json
 import os
@@ -35,6 +36,8 @@ class CaptureResult:
     outcome: Outcome
     path: str | None = None
     error_kind: str | None = None
+    errno: str | None = None  # symbolic name, for an operating-system failure
+    folder: str | None = None  # the destination folder, for an operating-system failure
 
 
 class CaptureRefused(Exception):
@@ -173,8 +176,20 @@ def _capture(
     return CaptureResult(Outcome.WRITTEN, str(path))
 
 
+def _failed(exc: Exception, destination: Path | None, log: Any) -> CaptureResult:
+    kind = fsio.error_kind(exc)
+    error = str(exc) if isinstance(exc, CaptureRefused) else fsio.describe_error(exc)
+    log.warning("capture_failed", error=error, error_kind=kind)
+    if isinstance(exc, OSError) and exc.errno in errno_names.errorcode:
+        name = errno_names.errorcode[exc.errno]
+        return CaptureResult(
+            Outcome.FAILED, None, kind, name, str(destination) if destination else None
+        )
+    return CaptureResult(Outcome.FAILED, error_kind=kind)
+
+
 # @spec CAPTURE-WRITE-001, CAPTURE-WRITE-002, CAPTURE-WRITE-010, CAPTURE-WRITE-013
-# @spec CAPTURE-GUARD-003, CAPTURE-LOG-001, CAPTURE-LOG-003, CAPTURE-LOG-004
+# @spec CAPTURE-GUARD-003, CAPTURE-LOG-001, CAPTURE-LOG-003, CAPTURE-LOG-004, CAPTURE-FAIL-002
 def capture(
     root: Path | str,
     source: str,
@@ -191,6 +206,7 @@ def capture(
     ms = utc_now_ms()
     day = dt or _fetched_at(ms)[:10]
     log = get_logger("capture").bind(**_log_context(source, collection, day))
+    destination: Path | None = None
     try:
         if ext is None:
             ext = ext_for(meta.get("content_type") if isinstance(meta, dict) else None)
@@ -202,9 +218,7 @@ def capture(
             log.warning("capture_skipped_non_2xx", http_status=status)
             return CaptureResult(Outcome.SKIPPED_NON_2XX)
         call = _Call(Path(root), source, collection, day, ext, ms)
+        destination = call.folder
         return _capture(call, bytes(payload), meta, dedupe, dedupe_scope, log)
     except Exception as exc:
-        kind = fsio.error_kind(exc)
-        error = str(exc) if isinstance(exc, CaptureRefused) else fsio.describe_error(exc)
-        log.warning("capture_failed", error=error, error_kind=kind)
-        return CaptureResult(Outcome.FAILED, error_kind=kind)
+        return _failed(exc, destination, log)

@@ -287,7 +287,9 @@ run-level log line decides whether failures need a person.
 
 ## Return value
 
-`capture` returns a `CaptureResult` with an `outcome`, a `path` and an `error_kind`:
+`capture` returns a `CaptureResult` with an `outcome`, a `path` and an `error_kind`, and for a
+failure caused by an operating-system error its `errno` (the symbolic name) and the destination
+`folder`, which the supervisor reports in a capture pause:
 
 | `outcome` | When | `path` | `error_kind` |
 |---|---|---|---|

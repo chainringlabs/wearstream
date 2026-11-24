@@ -1,8 +1,8 @@
 """The `wearstream` command line.
 
-`version` and `--help` never read configuration, so they can't fail on it; `config` reads every
-setting and reports it (operator-interface design, per-command settings). The other commands arrive
-with the components that own them.
+`version` and `--help` never read configuration, so they can't fail on it; every other command
+reads only the settings it uses (operator-interface design, per-command settings). `auth`,
+`accept-schema` and `status` arrive with the components that own them.
 """
 
 from __future__ import annotations
@@ -27,6 +27,27 @@ def _parser() -> argparse.ArgumentParser:
         "version", help="print the installed version", description="Print the installed version."
     )
     commands.add_parser(
+        "daemon",
+        help="run the scheduler (the container's main process)",
+        description="Run the scheduler: capture on schedule, catch up, backfill and run checks.",
+    )
+    run = commands.add_parser(
+        "run",
+        help="run one unit of a job now, by hand",
+        description="Run one unit of a job by hand, under the same locks and limits as the daemon.",
+    )
+    run.add_argument("source", help="whoop or garmin")
+    run.add_argument("job", help="the job: range, snapshots, daily, reference or checks")
+    run.add_argument("--day", help="the partition day (YYYY-MM-DD), for range and daily only")
+    for hidden in ("--run-id", "--trigger"):
+        run.add_argument(hidden, help=argparse.SUPPRESS)
+    run.add_argument("--result-fd", type=int, help=argparse.SUPPRESS)
+    commands.add_parser(
+        "healthcheck",
+        help="exit 0 when the daemon is healthy (for the container health check)",
+        description="Exit 0 when the daemon's heartbeat is fresh and capture is not paused.",
+    )
+    commands.add_parser(
         "config",
         help="show every setting, its value and where it came from, and any problems",
         description="Show the effective settings, which secret files exist, and every problem.",
@@ -42,7 +63,7 @@ def _config() -> int:
     return 2 if loaded.problems else 0
 
 
-# @spec OPERATOR-CMD-003, OPERATOR-SET-009
+# @spec OPERATOR-CMD-003, OPERATOR-SET-009, SUPERVISOR-HEALTH-002
 def main(argv: list[str] | None = None) -> int:
     """Run a command and return its exit code."""
     parser = _parser()
@@ -52,6 +73,20 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "config":
         return _config()
+    if args.command == "daemon":
+        from wearstream.supervisor import run_daemon
+
+        return run_daemon()
+    if args.command == "run":
+        from wearstream.runner.run import run_command
+
+        return run_command(
+            args.source, args.job, args.day, args.run_id, args.trigger, args.result_fd
+        )
+    if args.command == "healthcheck":
+        from wearstream.supervisor import healthcheck
+
+        return healthcheck()
     parser.print_help()
     return 2
 

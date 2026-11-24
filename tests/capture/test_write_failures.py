@@ -145,3 +145,24 @@ def test_outcomes_other_than_failed_have_no_error_kind(root: Path) -> None:
     assert capture(root, "whoop", "sleep", b"x", META, dt=DAY).error_kind is None
     refused = capture(root, "whoop", "sleep", b"x", {**META, "http_status": 500}, dt=DAY)
     assert refused.error_kind is None
+
+
+# @spec CAPTURE-FAIL-002
+def test_an_os_failure_names_its_errno_and_destination_folder(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def full(*_args: object, **_kw: object) -> None:
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(os, "link", full)
+    failed = capture(root, "whoop", "sleep", b"x", META, dt=DAY)
+    assert (failed.errno, failed.folder) == ("ENOSPC", str(root / "whoop" / "sleep" / f"dt={DAY}"))
+    monkeypatch.undo()
+    written = capture(root, "whoop", "sleep", b"y", META, dt=DAY)
+    refused = capture(root, "Whoop", "sleep", b"z", META, dt=DAY)
+    assert (written.errno, written.folder, refused.errno, refused.folder) == (
+        None,
+        None,
+        None,
+        None,
+    )

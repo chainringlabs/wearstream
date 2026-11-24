@@ -60,6 +60,7 @@ functions of those names in this component.
 ## Failure classification
 
 - [x] **CAPTURE-FAIL-001**: When `capture` returns outcome `failed` because of an operating-system error whose errno is `ENOSPC`, `EDQUOT`, `EROFS`, `EACCES` or `EPERM`, the system shall set the result's `error_kind` to `environment`; for every other `failed` outcome it shall set `error_kind` to `other`; for every other outcome `error_kind` shall be empty.
+- [x] **CAPTURE-FAIL-002**: When `capture` returns outcome `failed` because of an operating-system error, the system shall set the result's `errno` to the error's symbolic name (for example `ENOSPC`) and, when the names were valid, its `folder` to the capture's destination `dt=` folder; for every other outcome both shall be empty.
 
 ## Secret screening
 

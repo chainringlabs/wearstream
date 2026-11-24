@@ -39,6 +39,10 @@ src = ["src", "tests", "scripts"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "W"]
 
+[tool.coverage.run]
+# Measure the `wearstream` processes the tests start (the run child, hand-started runs, the daemon).
+patch = ["subprocess"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--strict-markers"
