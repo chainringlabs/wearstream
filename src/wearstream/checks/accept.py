@@ -3,9 +3,7 @@
 
 from __future__ import annotations
 
-import fcntl
 import os
-import time
 from pathlib import Path
 from typing import Any
 
@@ -14,25 +12,10 @@ from wearstream.checks.schema import baseline_doc, baseline_path, current_keys
 from wearstream.checks.settings import CheckSetting, check_name
 from wearstream.runner import BUSY, OK, USAGE
 from wearstream.settings import ensure_valid, load, paths
-from wearstream.state import StateStore, release
+from wearstream.state import StateStore, release, wait_lock
 
 EXTRA_WAIT_SECONDS = 120.0  # beyond the checks time limit, so a running unit can finish first
 ACCEPTABLE = ("drift", "baseline_unreadable")
-
-
-def _wait_lock(path: Path, seconds: float) -> int | None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd = os.open(path, os.O_RDWR | os.O_CREAT | getattr(os, "O_CLOEXEC", 0), 0o644)
-    deadline = time.monotonic() + seconds
-    while True:
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            return fd
-        except BlockingIOError:
-            if time.monotonic() >= deadline:
-                os.close(fd)
-                return None
-            time.sleep(0.05)
 
 
 def _schema_settings(source: str, values: dict[str, Any]) -> dict[str, CheckSetting] | None:
@@ -97,7 +80,7 @@ def accept_schema(source: str, collection: str | None, every: bool) -> int:
         return USAGE
     resolved = paths(values)
     limit = values[jobs.setting(source, "checks", "TIME_LIMIT")] * jobs.SECONDS_PER_MINUTE
-    fd = _wait_lock(
+    fd = wait_lock(
         resolved.state_path("locks", f"{source}.checks.lock"), limit + EXTRA_WAIT_SECONDS
     )
     if fd is None:

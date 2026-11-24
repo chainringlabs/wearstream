@@ -52,7 +52,9 @@ Whoop unit. In order, it:
 5. exchanges the code for tokens and writes the result to the staging file `token.json.new`, as
    one credential exchange (below), under the token lock;
 6. refuses the result if it lacks a refresh token or any required scope, naming what is missing,
-   deleting the staging file and leaving `token.json` untouched;
+   deleting the staging file and leaving `token.json` untouched (a response that lists no granted
+   scopes is checked by its refresh token alone; a missing `read:` scope then shows up as
+   `whoop_scope_missing` on the first data request);
 7. fetches the Whoop profile, and compares its user id with the `user_id` in any existing
    `token.json`: a different user is refused the same way, unless the operator passed
    `--new-account`;
@@ -116,7 +118,7 @@ Only one process works on the Whoop source at a time (the supervisor's source lo
 refresh is guarded on its own as well, because `wearstream auth whoop` and a hand-started run
 must never interleave with it:
 
-1. an `asyncio.Lock` serializes callers inside one process;
+1. an in-process lock serializes callers inside one process;
 2. an exclusive `flock` on `token.json.lock` serializes processes; the kernel releases it if
    the holder dies.
 
@@ -188,7 +190,8 @@ fails one unit; the next tick refreshes with `R` intact if Whoop did not consume
 
 **A data request answered with 401.** The access token was refused even though it looked valid
 (clock skew, or Whoop revoked it early). The token manager sets the stored `expires_at` to now,
-so a later unit refreshes under the rules above, and the data request fails without retry.
+so a later unit refreshes under the rules above, and the data request fails without retry. The
+unit makes no further requests: each would present the same refused token.
 
 ## When a person is needed
 
