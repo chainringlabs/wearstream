@@ -1,5 +1,5 @@
 """Allow `python -m wearstream`."""
 
-from wearstream.cli import main
+from wearstream.cli import entry
 
-raise SystemExit(main())
+entry()
