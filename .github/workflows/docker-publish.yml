@@ -1,0 +1,53 @@
+# @spec DELIVERY-CI-001, DELIVERY-CI-002, DELIVERY-CI-008, DELIVERY-CI-011, DELIVERY-REL-001
+name: Build and publish image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions: {}
+
+jobs:
+  # Runs on every push; checks only release tags (tag = v + version, plain X.Y.Z, commit on main).
+  release-check:
+    name: Release check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      python: ${{ steps.python.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check release tag
+        env:
+          REF: ${{ github.ref }}
+        run: python3 scripts/check_release.py --ref "$REF"
+      - name: Read requires-python
+        id: python
+        run: echo "version=$(python3 scripts/python_version.py)" >> "$GITHUB_OUTPUT"
+
+  supply-chain:
+    name: Supply chain
+    needs: release-check
+    permissions:
+      contents: read
+    uses: chainringlabs/ci/.github/workflows/supply-chain.yml@4a56829e5f1be54347d6708b0a86972e56d594ac # v1.3.0
+    with:
+      python-version: ${{ needs.release-check.outputs.python }}
+    secrets:
+      SOCKET_SECURITY_API_KEY: ${{ secrets.SOCKET_SECURITY_API_KEY }}
+
+  image:
+    name: Image
+    needs: supply-chain
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    uses: chainringlabs/ci/.github/workflows/docker-publish.yml@4a56829e5f1be54347d6708b0a86972e56d594ac # v1.3.0

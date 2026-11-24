@@ -1,0 +1,39 @@
+# @spec DELIVERY-CI-001, DELIVERY-CI-002, DELIVERY-CI-007, DELIVERY-CI-011
+name: Supply chain
+
+on:
+  pull_request:
+  # Weekly full scan of main: pull requests fail only on vulnerabilities they introduce, so this
+  # is where an advisory against an already-merged dependency surfaces.
+  schedule:
+    - cron: '0 13 * * 1'   # Mondays 13:00 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  python:
+    name: Python version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Read requires-python
+        id: read
+        run: echo "version=$(python3 scripts/python_version.py)" >> "$GITHUB_OUTPUT"
+
+  supply-chain:
+    name: Supply chain
+    needs: python
+    permissions:
+      contents: read
+    uses: chainringlabs/ci/.github/workflows/supply-chain.yml@4a56829e5f1be54347d6708b0a86972e56d594ac # v1.3.0
+    with:
+      python-version: ${{ needs.python.outputs.version }}
+    secrets:
+      SOCKET_SECURITY_API_KEY: ${{ secrets.SOCKET_SECURITY_API_KEY }}

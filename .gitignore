@@ -32,3 +32,8 @@ CLAUDE.local.md
 # OS
 .DS_Store
 Thumbs.db
+
+# Test coverage
+.coverage
+coverage.xml
+htmlcov/

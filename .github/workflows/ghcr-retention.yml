@@ -1,0 +1,18 @@
+# @spec DELIVERY-CI-001, DELIVERY-CI-002, DELIVERY-CI-009
+name: GHCR retention
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'   # Mondays 06:00 UTC
+
+permissions: {}
+
+jobs:
+  prune:
+    permissions:
+      packages: write
+    uses: chainringlabs/ci/.github/workflows/ghcr-retention.yml@4a56829e5f1be54347d6708b0a86972e56d594ac # v1.3.0
+    with:
+      # Release versions (X.Y.Z) are never pruned; sha- builds of main are.
+      exclude-tags: 'latest,*.*.*'

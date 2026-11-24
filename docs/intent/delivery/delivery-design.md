@@ -81,7 +81,7 @@ commit SHA with the release tag in a comment, as the organization requires.
 | Workflow | Triggers | Does |
 |---|---|---|
 | `test.yml` | Pull requests | **Python:** a first job reads the major.minor from `requires-python` for the jobs after it. **Check:** `uv lock --check`; `uv sync --frozen`; Ruff lint and format; the size-limit script; the spec-citation script; pytest with coverage (at least 90%) on that Python. **Image:** build the image locally (no push, `load: true`) and smoke-test it (below) |
-| `supply-chain.yml` | Pull requests, Mondays 13:00 UTC, manual | A first job reads the Python major.minor; then calls `ci/supply-chain.yml` with it as `python-version` and `secrets: inherit`: OSV in diff mode on pull requests; OSV in full mode plus `pip-audit` on the schedule and manual runs |
+| `supply-chain.yml` | Pull requests, Mondays 13:00 UTC, manual | A first job reads the Python major.minor; then calls `ci/supply-chain.yml` with it as `python-version`, passing only the Socket key secret by name (never every secret): OSV in diff mode on pull requests; OSV in full mode plus `pip-audit` on the schedule and manual runs |
 | `docker-publish.yml` | Pushes to `main`; `v*` tags | A release-check job always runs (a no-op off tags) and reads the Python major.minor; then `ci/supply-chain.yml` (with that `python-version`), then `ci/docker-publish.yml`, which pushes `ghcr.io/chainringlabs/wearstream` (`latest` on `main`, `X.Y.Z` and `X.Y` on tags, `sha-<short>` always), signs it with cosign and attaches an SBOM and build provenance |
 | `ghcr-retention.yml` | Mondays 06:00 UTC, manual | Calls `ci/ghcr-retention.yml` with `exclude-tags: latest,*.*.*`, so release versions are never pruned while `sha-` builds of `main` are |
 
