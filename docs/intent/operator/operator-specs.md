@@ -64,12 +64,12 @@ Design: [operator-design.md](operator-design.md). Prefix `OPERATOR`. Facets: `PA
 - [x] **OPERATOR-LOG-002**: Before importing anything else, every process shall route stderr, Python warnings, uncaught exceptions and any library logger it lets through into its logger as the events `stderr`, `python_warning`, `uncaught_exception` (at ERROR, with an action to report the problem) and `library_log`.
 - [x] **OPERATOR-LOG-003**: Where `WEARSTREAM_LOG_FORMAT` is `console` (the default), a process shall write each line as the UTC timestamp with milliseconds, the level, the event name and `key=value` fields, double-quoting values that contain spaces or quotes, escaping control characters, and using color codes only when stdout is a terminal; where it is `json`, it shall write one JSON object per line with the same fields.
 - [x] **OPERATOR-LOG-004**: Every log line shall carry `timestamp`, `level`, `event` and `component`, and a child's lines shall also carry its unit's `run_id`, `source`, `job`, `trigger` and, for a partitioned unit, `day`; no event shall use these names, or `dt`, for anything else.
-- [ ] **OPERATOR-LOG-005**: When the daemon starts, it shall log `daemon_started` with the version, the enabled sources and each job's effective schedule.
+- [x] **OPERATOR-LOG-005**: When the daemon starts, it shall log `daemon_started` with the version, the enabled sources and each job's effective schedule.
 - [x] **OPERATOR-LOG-006**: Every process shall render tracebacks without local variables.
 - [x] **OPERATOR-LOG-007**: If a process that loads a source catches an exception raised from a source's modules or from `httpx`, `httpcore`, `curl_cffi` or `garminconnect`, then it shall log only the exception's type; if it catches any other unexpected exception, it shall log the type and the message truncated to 300 characters.
 - [x] **OPERATOR-LOG-010**: Where the log level is `DEBUG`, a process shall add to an exception's event a traceback of frames and exception types for every exception in the chain, without any exception message or local variable.
 - [x] **OPERATOR-LOG-008**: A process shall set the `httpx`, `httpcore` and `curl_cffi` loggers to `WARNING`, and the `garminconnect` loggers as the Garmin source requires.
-- [ ] **OPERATOR-LOG-009**: Where `WEARSTREAM_GARMIN_LIBRARY_DEBUG` is `true`, the daemon shall log `library_debug_enabled` at WARNING on every start, saying that library output may include request details and tokens and should be turned off after troubleshooting.
+- [x] **OPERATOR-LOG-009**: Where `WEARSTREAM_GARMIN_LIBRARY_DEBUG` is `true`, the daemon shall log `library_debug_enabled` at WARNING on every start, saying that library output may include request details and tokens and should be turned off after troubleshooting.
 
 ## Redaction
 

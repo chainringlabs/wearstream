@@ -331,8 +331,9 @@ hand-started runs. It is held for one update at a time and waited for at most 10
 update that times out is logged and skipped, and the next update retries.
 
 An entry is added to `inflight.json`, and flushed to disk, **before** its child is spawned, so a
-crash at any point leaves a record. A missing or unparseable state document is logged at
-WARNING and treated as absent, except `inflight.json`: when it is unparseable, the units to
+crash at any point leaves a record. An unparseable state document, or one missing from a
+`/state` that already holds a heartbeat from an earlier start, is logged at WARNING and treated as
+absent (on a fresh `/state` every document is simply absent), except `inflight.json`: when it is unparseable, the units to
 recover are the run log's `start` lines, in the current and previous month's files, that have
 no `finish`. Every other document is rebuildable from `/data` or simply restarts.
 
@@ -379,12 +380,16 @@ failure is logged at WARNING and escalated by the daemon's `run_crashed` and `jo
 | Event | Level | When |
 |---|---|---|
 | `daemon_started` / `daemon_stopping` | INFO | Startup complete / shutdown begun |
+| `daemon_not_started` | ERROR | Another daemon holds `daemon.lock`, or `/state` is not writable; action names the fix |
 | `run_started` | INFO | A unit started |
 | `run_finished` | INFO | A unit succeeded; adds duration and capture counts |
 | `run_failed` | WARNING | A unit ended `failed`; adds counts and the error summary |
 | `run_crashed` | WARNING | A unit ended `crashed`; adds the exit code or signal |
 | `run_killed` | ERROR | A unit exceeded its time limit; action for a source unit: check network and vendor status, or raise the job's time limit if runs are legitimately slow; for a checks unit: a check is hanging, see the last check it logged |
 | `run_busy` | WARNING | The unit's lock (source or checks) was held; usually a hand-started run or command |
+| `run_interrupted` | INFO | A unit ended `interrupted` |
+| `run_exception` | WARNING | Logged by a child: an unexpected exception reached its top level (it exits `70`) |
+| `run_refused` | ERROR | Logged by a hand-started run that would not start: capture paused, the source waiting for a credential or rate-limited, or `/data` failing its self-test; action names what to do |
 | `run_repaired` | INFO | Repair ran after an interrupted, killed or crashed unit |
 | `tick_skipped` | INFO | A tick was skipped because the job still had scheduled work queued or running |
 | `catchup_scheduled` | INFO | A job was caught up |
@@ -440,13 +445,12 @@ failure is logged at WARNING and escalated by the daemon's `run_crashed` and `jo
 | Data-directory or state failure | Pause capture, report unhealthy, retry with backoff | Exit and let the container restart | A restart loop repeats startup work and noise; pausing keeps checks and the log running and resumes on its own. |
 | In-flight recovery | `inflight.json` written before spawn; run log as fallback | Scan the run log only | A small set read once is exact; the run log covers a corrupted set. |
 | Scheduling library | Cron expressions with WearStream's own guardrails | A job-scheduling framework (APScheduler) | The supervisor needs next-fire-time arithmetic, not a framework with its own threads, stores and misfire semantics. |
+| Cron evaluation | WearStream's own evaluator for the restricted syntax configuration accepts | `croniter`; `cronsim` | Configuration already limits schedules to five numeric fields with one literal minute, and the supervisor needs only the next fire time and the shortest and longest gaps between fires. A small evaluator covers that with no dependency to pin, audit and follow through maintainer changes. |
 
 ## Open Questions & Future Decisions
 
 ### Deferred
-1. Choice of cron-expression library: decide at implementation, pinned, needing only next and
-   previous fire times in UTC.
-2. Push notifications for ERROR events (issue #4) and metrics (issue #3) would read the same
+1. Push notifications for ERROR events (issue #4) and metrics (issue #3) would read the same
    events this component logs.
 
 ## References

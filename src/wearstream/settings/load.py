@@ -101,6 +101,7 @@ def _enabled_sources(environ: Mapping[str, str], loaded: Loaded) -> list[str]:
 
 
 # @spec OPERATOR-PARSE-001, OPERATOR-SET-001, OPERATOR-SET-002, OPERATOR-SET-004, OPERATOR-SET-009
+# @spec SUPERVISOR-JOB-002, SUPERVISOR-JOB-003
 def load(
     environ: Mapping[str, str] | None = None,
     command: str = "daemon",
@@ -132,4 +133,8 @@ def load(
         except ValueError as exc:
             loaded.problems.append(f"{setting.name} {exc}")
     loaded.problems.extend(path_problems(loaded.values))
+    if command in _WIDE_COMMANDS:
+        from wearstream.jobs import guardrail_problems  # jobs reads settings; import late
+
+        loaded.problems.extend(guardrail_problems(loaded.values))
     return loaded
