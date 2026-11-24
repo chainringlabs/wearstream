@@ -110,7 +110,7 @@ endpoint** what counts as data; the writer doesn't infer it.
 | Segment | Meaning |
 |---|---|
 | `source`, `collection` | Lowercase provider and dataset names (`whoop`, `sleep`) |
-| `dt=` | The **partition day** the caller passes: the UTC day of the fetch window. When none is passed, the UTC date of the fetch time |
+| `dt=` | The **partition day** the caller passes: the UTC day of the fetch window (Garmin's is the calendar date requested; see the HLD's partition decision). When none is passed, the UTC date of the fetch time |
 | `fetched_unix_ms` | Capture time, Unix epoch milliseconds, UTC, in decimal digits |
 | `short_id` | 6 random lowercase hex characters (3 bytes) |
 | `ext` | The **stored** form. An explicit `ext` from the caller is used as given. Otherwise it is derived from `content_type` (parameters dropped, trimmed, lowercased): `application/json`/`text/json` → `json`, `text/csv`/`application/csv` → `csv`, `application/xml`/`text/xml` → `xml`, `text/plain` → `txt`, anything else → `bin` |

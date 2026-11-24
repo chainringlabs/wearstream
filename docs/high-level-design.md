@@ -201,6 +201,11 @@ cascades to every source that relies on it.
 - **Partitions are UTC fetch slices.** A capture's `dt=` folder is the UTC day of the fetch
   window `[day 00:00Z, next day 00:00Z)`, never a local or semantic day. Local-day meaning
   (which night a sleep belongs to) is applied by readers over the payload's own timestamps.
+  Garmin is the one exception: its daily endpoints take a calendar date and answer for the
+  account's **local** day, so a Garmin `dt=` is the calendar date requested, which is the
+  account's local day. WearStream sends dates, never time ranges, to those endpoints, so the
+  folder is still exactly what was asked for; readers apply the same rule of trusting the
+  payload's own timestamps.
 - **The capture tree is the contract.** Its layout and sidecar format match grecohome-dagster
   bronze byte for byte, and nothing in WearStream reads its own captures back to decide what
   to fetch, except backfill's "does this day have a capture" and "what is the earliest day
