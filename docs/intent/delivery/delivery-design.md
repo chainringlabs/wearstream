@@ -99,10 +99,10 @@ reach `waiting_for_auth` without any network call (which exercises child process
 the `Dockerfile` or `.github/` cites an ID that doesn't exist, or a spec file repeats an ID.
 
 **The scan gates publishing**, as in the organization's other services: an image is built only
-after the full supply-chain scan passes. The shared workflow's `pip-audit` step can't yet be told to
-ignore an advisory that has no fix or doesn't apply (`osv-scanner.toml` silences only OSV), so such an
-advisory blocks publishing until it clears; chainringlabs/ci#12 proposes having `pip-audit` honour the
-same `osv-scanner.toml` ignores.
+after the full supply-chain scan passes. An advisory that has no fix, or doesn't apply, is
+acknowledged in `osv-scanner.toml` beside `uv.lock`, with a reason and an optional `ignoreUntil`; the
+shared workflow honours that one list for both OSV and `pip-audit`, and an expired entry counts
+again.
 
 **Required checks.** A repository ruleset on `main` requires the `test.yml` jobs and the
 supply-chain scan, on top of the organization's GitGuardian check, so an automerged dependency
@@ -215,7 +215,7 @@ contributors, with the LID block.
 | Registry retention | Keep `latest` and every `X.Y.Z` | Keep the 5 newest tagged versions | Every merge to `main` adds a tagged build; a pinned release would be deleted within a few merges. |
 | `garminconnect` cooldown | Exempt, in its own group, merged by a person | The 7-day cooldown like everything else; exempt and automerged | A Garmin sign-in change stops Garmin capture until the library fix ships, so a week's wait is a week of lost capture; but automerging a same-day release of the library holding the password would skip the review the cooldown stands in for. |
 | Version of `main` builds | The next version as `X.Y.Z.dev0` in `pyproject.toml` | A commit-counted `X.Y.Z.devN` computed at build time | The shared publish workflow passes no build arguments and keeps no git history, so the build can't compute one; the image's `revision` label names the commit. |
-| Advisories `pip-audit` can't ignore | Accept that they block publishing until chainringlabs/ci#12 lands | Publish without waiting for the scan | Matches the organization's other services; the fix belongs in the shared workflow, for every repository. |
+| Acknowledging an advisory | One `osv-scanner.toml` beside `uv.lock`, honoured by OSV and `pip-audit` | Publish without waiting for the scan | Matches the organization's other services; a reasoned, dated entry unblocks publishing without disabling the scan. |
 | Install mode | Non-editable virtual environment | Editable install with the source tree copied | The runtime needs only the environment, which is smaller and ships no source. |
 | Volumes in the image | None declared | `VOLUME` for each mount | A missing mount then fails loudly (a read-only filesystem) instead of writing to an anonymous volume lost on replacement. |
 | Deployment image tag | Exact `X.Y.Z` | `latest`; `X.Y` | Upgrades are deliberate; `X.Y` and `latest` change under a restart. |
