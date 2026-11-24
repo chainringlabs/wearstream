@@ -13,8 +13,9 @@ HEARTBEAT_FRESH_SECONDS = 120
 
 # @spec CHECKS-SUPP-001
 def suppression_reason(state: Path, source: str, now: dt.datetime) -> str | None:
-    """`capture_paused`, `waiting_for_auth`, `rate_limited` or `resuming` while a running daemon
-    says capture can't happen (or hasn't succeeded since it resumed); otherwise None."""
+    """`capture_paused`, `waiting_for_auth`, `rate_limited`, `resuming` or `first_capture_pending`
+    while a running daemon says capture can't happen, hasn't succeeded since it resumed, or has
+    never succeeded for this source; otherwise None."""
     store = StateStore(state)
     beat = store.read_quiet("heartbeat.json") or {}
     updated = parse_time(beat.get("updated_at"))
@@ -32,4 +33,6 @@ def suppression_reason(state: Path, source: str, now: dt.datetime) -> str | None
     succeeded = parse_time(doc.get("last_source_success_at"))
     if resumed is not None and (succeeded is None or succeeded <= resumed):
         return "resuming"
+    if succeeded is None:
+        return "first_capture_pending"
     return None

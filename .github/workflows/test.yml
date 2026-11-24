@@ -86,3 +86,43 @@ jobs:
           actual=$(run --entrypoint python wearstream:test -c 'import sys; print("%d.%d" % sys.version_info[:2])')
           echo "image Python $actual, requires-python $PYTHON_VERSION"
           test "$actual" = "$PYTHON_VERSION"
+
+          # Three empty mounts owned by the image's uid, both sources on, no credentials.
+          mounts=$(mktemp -d)
+          mkdir "$mounts/data" "$mounts/state" "$mounts/secrets"
+          sudo chown 65532:65532 "$mounts/data" "$mounts/state" "$mounts/secrets"
+          opts=(-v "$mounts/data:/data" -v "$mounts/state:/state" -v "$mounts/secrets:/secrets"
+                -e WEARSTREAM_SOURCES=whoop,garmin -e WEARSTREAM_LOG_FORMAT=json)
+
+          # Before the daemon has run, the health check fails for want of a heartbeat.
+          set +e
+          out=$(run "${opts[@]}" wearstream:test healthcheck)
+          status=$?
+          set -e
+          echo "$out"
+          test "$status" -eq 1
+          grep -q "no readable heartbeat" <<<"$out"
+
+          docker run -d --name smoke --read-only --tmpfs /tmp --cap-drop ALL \
+            --security-opt no-new-privileges "${opts[@]}" wearstream:test
+          trap 'docker logs smoke 2>&1 | tail -n 40; docker rm -f smoke >/dev/null 2>&1 || true' EXIT
+          for _ in $(seq 60); do
+            grep -q '"event": "daemon_started"' <<<"$(docker logs smoke 2>&1)" && break
+            sleep 1
+          done
+          grep -q '"event": "daemon_started"' <<<"$(docker logs smoke 2>&1)"
+
+          # Without credentials, both sources end up waiting_for_auth, with no network call.
+          states=""
+          for _ in $(seq 120); do
+            states=$(docker exec smoke wearstream status --json | python3 -c \
+              'import json, sys; s = json.load(sys.stdin)["sources"]; print(s["whoop"]["state"], s["garmin"]["state"])' || true)
+            [ "$states" = "waiting_for_auth waiting_for_auth" ] && break
+            sleep 1
+          done
+          echo "source states: $states"
+          test "$states" = "waiting_for_auth waiting_for_auth"
+          docker exec smoke wearstream healthcheck
+
+          docker stop -t 60 smoke
+          test "$(docker inspect smoke --format '{{.State.ExitCode}}')" = 0
