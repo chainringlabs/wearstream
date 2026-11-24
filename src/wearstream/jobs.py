@@ -22,6 +22,7 @@ class Declaration:
 
 # What each source declares (its capture design); the tunable values come from settings.
 # @spec WHOOP-CAPTURE-JOB-001, WHOOP-CAPTURE-JOB-002, WHOOP-CAPTURE-JOB-003
+# @spec GARMIN-CAPTURE-JOB-002, GARMIN-CAPTURE-JOB-003
 DECLARATIONS = {
     "whoop": {
         "range": Declaration("partitioned", include_today=True),

@@ -47,6 +47,28 @@ def _in_scope(setting: Setting, command: str, source: str | None, enabled: list[
     return setting.source is None or setting.source in enabled
 
 
+_GARMIN_LISTS = (
+    "WEARSTREAM_GARMIN_SELECT",
+    "WEARSTREAM_GARMIN_EXCLUDE",
+    "WEARSTREAM_GARMIN_EXPECTED_EMPTY",
+)
+
+
+# @spec OPERATOR-SET-007
+def _garmin_name_problems(values: dict[str, Any]) -> list[str]:
+    """Names in Garmin's selection lists that aren't Garmin collections."""
+    if not any(values.get(name) for name in _GARMIN_LISTS):
+        return []
+    from wearstream.garmin.catalog import collection_names  # never imports the library
+
+    known = collection_names()
+    return [
+        f"{name}: {', '.join(unknown)} is not a Garmin collection"
+        for name in _GARMIN_LISTS
+        if (unknown := [n for n in values.get(name) or [] if n not in known])
+    ]
+
+
 # @spec OPERATOR-ENV-001
 def _refused(name: str, retired: frozenset[str]) -> bool:
     upper = name.upper()
@@ -133,6 +155,7 @@ def load(
         except ValueError as exc:
             loaded.problems.append(f"{setting.name} {exc}")
     loaded.problems.extend(path_problems(loaded.values))
+    loaded.problems.extend(_garmin_name_problems(loaded.values))
     if command in _WIDE_COMMANDS:
         from wearstream.checks.settings import source_setting_problems  # imports sources
         from wearstream.jobs import guardrail_problems  # jobs reads settings; import late

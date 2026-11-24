@@ -95,9 +95,9 @@ def quiet_libraries(garmin_debug: bool = False) -> None:
     _route_library_logs()
     for name in QUIET_LIBRARIES:
         logging.getLogger(name).setLevel(logging.WARNING)
-    logging.getLogger(GARMIN_LIBRARY).setLevel(
-        logging.DEBUG if garmin_debug else logging.CRITICAL + 1
-    )
+    garmin = logging.getLogger(GARMIN_LIBRARY)
+    garmin.setLevel(logging.DEBUG if garmin_debug else logging.CRITICAL + 1)
+    garmin.propagate = garmin_debug
 
 
 # @spec OPERATOR-LOG-009

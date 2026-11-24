@@ -6,6 +6,8 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.15"
 dependencies = [
+    "curl-cffi>=0.17.0",
+    "garminconnect>=0.3.20",
     "httpx>=0.28.1",
     "structlog>=26.1.0",
 ]
