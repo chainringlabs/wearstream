@@ -153,6 +153,9 @@ cosign verify ghcr.io/chainringlabs/wearstream:X.Y.Z \
   --certificate-github-workflow-repository chainringlabs/wearstream
 ```
 
+`gh attestation verify` checks the build provenance by default; add
+`--predicate-type https://spdx.dev/Document/v2.3` to the same command to check the SBOM.
+
 ## Configuration reference
 
 Every setting is an environment variable. `.env.example` lists them all with their defaults; the
