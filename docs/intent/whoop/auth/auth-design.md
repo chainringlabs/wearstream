@@ -212,9 +212,11 @@ deadline, connect errors after three attempts) is **not** a needed credential: t
 (`whoop_token_refresh_failed`, WARNING) and the next tick tries again.
 
 **Credential fingerprint.** For the supervisor's resume check, the fingerprint is the sha256 of
-the concatenation of: the token file's bytes (or the name of the error that prevented reading
-it), the token file's mode and owner, the bytes of both client files (or "absent"), the mode and
-owner of `/secrets/whoop`, and whether a temporary file can be created there right now. It is
+the concatenation of, for the token file and both client files: whether it exists, and its
+size, modification time (nanoseconds), inode, mode and owner; then the mode and owner of
+`/secrets/whoop`, and whether a temporary file can be created there right now. It uses file
+metadata only, never file contents, so nothing derived from a secret reaches `/state`, which
+may be shared in a bug report. It is
 computed from the files alone, without a network call. The child takes it at the moment it finds
 the credential unusable and reports it in its result; the supervisor recomputes it once a minute
 while the source waits. A new token, a corrected client file, or a fixed or freed-up folder changes
@@ -274,7 +276,7 @@ variables (operator-interface design), as the backstop for a path nobody thought
 | A different Whoop account | Refused unless `--new-account` | Accept silently | One instance serves one person; a second account would mix two people's data in one tree. |
 | Adopting another tool's token | Not supported; re-authorize | Copy the file across | Two refreshers on one grant revoke it, and the operator can't easily prove the other tool has stopped. |
 | Dead-grant handling | Report a needed credential; the supervisor stops all refreshes until the fingerprint changes | Keep refreshing every tick | Presenting a dead token hourly gains nothing and hammers Whoop's token endpoint. |
-| Fingerprint contents | Token bytes, token file mode and owner, both client files | The token bytes alone | A missing client file or a permission problem is fixed without touching the token; the source must resume when it is. |
+| Fingerprint contents | Metadata of the token and client files, plus the folder's state | The token bytes alone; hashes of the file contents | A missing client file or a permission problem is fixed without touching the token, and the source must resume when it is. Hashing contents would put a value derived from secrets into `/state`; an atomic rewrite changes the metadata anyway. |
 | Where credential-safe logging is enforced | Both on credential paths and in the shared logger | Only one of them | Either layer alone has failed in practice: a logger setting that was never applied, and a stray traceback that dumped a request body. |
 
 ## Open Questions & Future Decisions
