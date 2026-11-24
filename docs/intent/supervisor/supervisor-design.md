@@ -460,5 +460,6 @@ failure is logged at WARNING and escalated by the daemon's `run_crashed` and `jo
   plain files"
 - `docs/intent/capture/capture-design.md`: "Obligations on the supervisor", `repair`, `self_test`,
   `error_kind`
-- grecohome-dagster `docs/intent/whoop/capture/capture-design.md`,
-  `docs/intent/garmin/capture/capture-design.md`: the schedules this component reproduces
+- grecohome-dagster [`docs/intent/whoop/capture/capture-design.md`](https://github.com/tgrecojr/grecohome-dagster/blob/0cbe15c78d613ddcda68ce3d60927c36c855912f/docs/intent/whoop/capture/capture-design.md),
+  [`docs/intent/garmin/capture/capture-design.md`](https://github.com/tgrecojr/grecohome-dagster/blob/0cbe15c78d613ddcda68ce3d60927c36c855912f/docs/intent/garmin/capture/capture-design.md):
+  the schedules this component reproduces

@@ -23,7 +23,8 @@ re-captured daily across a 14-day trailing window, and skip-identical keeps stor
 Garmin Connect has no official API that reaches the full catalog. `garminconnect` signs in
 through Garmin's consumer sign-in (handling Cloudflare challenges, MFA and session refresh) and
 keeps the session in a token store. WearStream delegates sign-in to it entirely and never
-reimplements it. Garmin's official Personal API is tracked as a possible future path (issue #5).
+reimplements it. Garmin's official Personal API is a possible future path, deferred for now; see
+[decisions/personal-api.md](decisions/personal-api.md) (re-evaluation tracked in issue #5).
 
 ## What the operator provides
 
@@ -65,5 +66,5 @@ total limit; the credential-exchange budget in the auth design depends on it.
 - `docs/high-level-design.md`: "Garmin goes through `garminconnect` and the consumer sign-in"
 - `docs/intent/supervisor/supervisor-design.md`: jobs, exit codes, "Obligations on other
   components"
-- grecohome-dagster `docs/intent/garmin/`: the capture and authentication designs this source
-  continues, and the Personal API decision
+- `docs/intent/garmin/decisions/personal-api.md`: the Personal API decision, its OpenAPI
+  snapshot, and `scripts/garmin_personal_api_spec.py` for diffing the live spec against it
