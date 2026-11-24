@@ -61,7 +61,8 @@ the supervisor's `/state/locks/garmin.lock`; "a unit" is a Garmin `daily` or `re
 ## Token-store health check
 
 - [ ] **GARMIN-AUTH-HEALTH-001**: When `garmin_tokenstore_health` runs, it shall fail at ERROR with the path, the reason and an action if the store meets any GARMIN-AUTH-GUARD-001 condition, whatever the source's state.
-- [ ] **GARMIN-AUTH-HEALTH-002**: When `garmin_tokenstore_health` runs and the token file is missing, unreadable, or not JSON holding non-empty `di_token`, `di_refresh_token` and `di_client_id`, it shall read the source's state from `/state/sources/garmin.json` (a missing document meaning active) and capture's state from `/state/heartbeat.json`, and report that the source is waiting for a credential, in a rate-limit cooldown, or that capture is paused when any of these is the case, and otherwise fail at ERROR with the path, the reason and an action.
+- [ ] **GARMIN-AUTH-HEALTH-003**: `garmin_tokenstore_health` shall return its result as a source's own check (CHECKS-RUN-007).
+- [ ] **GARMIN-AUTH-HEALTH-002**: When `garmin_tokenstore_health` runs and the token file is missing, unreadable, or not JSON holding non-empty `di_token`, `di_refresh_token` and `di_client_id`, it shall read the source's state from `/state/sources/garmin.json` (a missing document meaning active) and capture's state from `/state/heartbeat.json`, and report `suppressed` with the reason while the checks component's suppression rule applies to the Garmin source, and otherwise fail at ERROR with the path, the reason and an action.
 
 ## Credential-safe logging
 

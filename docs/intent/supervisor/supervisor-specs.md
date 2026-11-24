@@ -86,7 +86,7 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 
 ## Failing jobs
 
-- [ ] **SUPERVISOR-FAIL-001**: When all units enqueued by a tick (not counting retries) have ended, the supervisor shall count the tick as failed if any ended `failed`, `killed` or `crashed`, as succeeded if all ended `success`, and otherwise (only `busy`, `interrupted`, `needs_auth`, `environment` or `rate_limited` outcomes besides successes) leave the job's consecutive-failure count unchanged.
+- [ ] **SUPERVISOR-FAIL-001**: When all units enqueued by a tick of a job other than a `checks` job (not counting retries) have ended, the supervisor shall count the tick as failed if any ended `failed`, `killed` or `crashed`, as succeeded if all ended `success`, and otherwise (only `busy`, `interrupted`, `needs_auth`, `environment` or `rate_limited` outcomes besides successes) leave the job's consecutive-failure count unchanged.
 - [ ] **SUPERVISOR-FAIL-002**: When a job's consecutive failed ticks reach the configured threshold (3 by default), the supervisor shall log `job_failing` at ERROR with an action pointing at the job's recent `run_failed` lines.
 - [ ] **SUPERVISOR-FAIL-003**: When a tick of a job that had reached the failure threshold succeeds, the supervisor shall log `job_recovered` and reset the count to zero.
 
@@ -111,7 +111,8 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 
 ## Hand-started runs
 
-- [ ] **SUPERVISOR-MANUAL-001**: When an operator starts `wearstream run` by hand, it shall run with trigger `manual`, take the source lock before recording itself, then record itself in `inflight.json` with its pid and pid namespace and in the run log, and when it ends record its finish, update the job's `needs_refill` set by SUPERVISOR-AFTER-006, and remove its `inflight.json` entry.
+- [ ] **SUPERVISOR-MANUAL-009**: When an operator starts `wearstream run <source> checks` by hand, it shall run with trigger `manual`, take the source's checks lock (exiting with code 5 if it is held), run the checks, record its start and finish in the run log, and skip SUPERVISOR-MANUAL-001 to MANUAL-003, MANUAL-007 and MANUAL-008; it shall not be recorded in `inflight.json` or repaired.
+- [ ] **SUPERVISOR-MANUAL-001**: When an operator starts `wearstream run` by hand for a job other than `checks`, it shall run with trigger `manual`, take the source lock before recording itself, then record itself in `inflight.json` with its pid and pid namespace and in the run log, and when it ends record its finish, update the job's `needs_refill` set by SUPERVISOR-AFTER-006, and remove its `inflight.json` entry.
 - [ ] **SUPERVISOR-MANUAL-008**: If a hand-started `wearstream run` finds its source recorded as `waiting_for_auth` in `/state/sources/<source>.json`, then it shall exit with code 4 and a message saying to run `wearstream auth <source>`, without running the job; if it finds the source in a rate-limit cooldown, it shall exit with code 6 and the cooldown's end time, without running the job.
 - [ ] **SUPERVISOR-MANUAL-006**: If an operator starts `wearstream run` by hand for a `partitioned` job without `--day`, or with `--day` for any other job, then it shall exit with code 2 and a usage message without running the job.
 - [ ] **SUPERVISOR-MANUAL-007**: When a hand-started `wearstream run` has run longer than its job's time limit, it shall stop itself as if it had received `SIGTERM`, and end its process outright if it is still running 45 seconds later.
@@ -123,7 +124,8 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 ## State
 
 - [ ] **SUPERVISOR-STATE-001**: The supervisor and the child shall write every JSON document under `/state` atomically: to a temporary file, fsynced, renamed into place, and the folder fsynced.
-- [ ] **SUPERVISOR-STATE-002**: The supervisor and the child shall hold `/state/locks/state.lock` around each read-modify-write of a JSON document under `/state`, waiting at most 10 seconds; if the wait times out, they shall skip that update and log `state_update_skipped`.
+- [ ] **SUPERVISOR-STATE-007**: When a source leaves `waiting_for_auth`, its rate-limit cooldown ends, or capture resumes from a pause, the supervisor shall record the time as the source's `resumed_at` in `/state/sources/<source>.json`; when a source unit ends `success`, it shall record the time as the source's `last_source_success_at` there.
+- [ ] **SUPERVISOR-STATE-002**: The supervisor and the child shall hold `/state/locks/state.lock` around each read-modify-write of a JSON document under `/state`, except documents under `/state/checks/`, which are written only under the source's checks lock, waiting at most 10 seconds; if the wait times out, they shall skip that update and log `state_update_skipped`.
 - [ ] **SUPERVISOR-STATE-003**: Before starting a child, the supervisor shall add the unit to `inflight.json` and flush it to disk; after the unit has finished and any repair is complete, it shall remove the entry.
 - [ ] **SUPERVISOR-STATE-004**: When a unit starts, finishes or is repaired, the supervisor shall append a `start`, `finish` or `repaired` line to the run log `runs/<YYYY-MM>.jsonl` for the current UTC month, and shall keep only the 13 most recent monthly files.
 - [ ] **SUPERVISOR-STATE-005**: If a JSON document under `/state` other than `inflight.json` is missing or unparseable, then the supervisor shall log `state_document_reset` and treat it as absent.
@@ -145,4 +147,4 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 
 - [ ] **SUPERVISOR-LOG-001**: The supervisor shall log each event in the design's logging table at the level given there, with `source` and `job` where they apply and `run_id`, `trigger` and `day` on run events.
 - [ ] **SUPERVISOR-LOG-002**: When any WearStream process (the daemon, a child, or a hand-started command) logs an event at ERROR, it shall include an `action` field stating in plain language what the operator should do.
-- [ ] **SUPERVISOR-LOG-003**: When a unit ends `killed`, the supervisor shall log `run_killed` at ERROR with an action to check network and vendor status or to raise the job's time limit.
+- [ ] **SUPERVISOR-LOG-003**: When a source unit ends `killed`, the supervisor shall log `run_killed` at ERROR with an action to check network and vendor status or to raise the job's time limit; when a checks unit ends `killed`, the action shall say a check is hanging and to see the last check it logged.

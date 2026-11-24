@@ -227,11 +227,11 @@ it; a dead token left in place does not.
 `whoop_token_health` runs with the Whoop checks job and reads only the token file, never Whoop.
 It fails at ERROR (action: run `wearstream auth whoop`) when `expires_at` is more than 90 minutes
 in the past, or the file is missing or unreadable. With hourly refreshes, a token that old means
-refreshes have stopped succeeding or stopped happening. It reads the source's state from
-`/state/sources/whoop.json` (a missing document means active) and capture's state from
-`/state/heartbeat.json`: while the source is waiting for a credential it reports that, and while
-capture is paused it reports the pause, instead of failing, because no refresh can happen then
-and the supervisor is already telling the operator why.
+refreshes have stopped succeeding or stopped happening. While the source is waiting for a
+credential, in a rate-limit cooldown, or capture is paused, no refresh can happen and the
+supervisor is already telling the operator why, so the check reports `suppressed` with the
+reason instead of failing, under the checks component's suppression rule (which also covers the
+time until the first successful unit after the source resumes).
 
 ## Credential-safe logging
 

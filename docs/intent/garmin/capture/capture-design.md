@@ -163,7 +163,12 @@ FIT files, are about 38% of Garmin's bytes, so request scope matters.
 ## Collection checks
 
 The checks job evaluates these settings (the checks component defines what each check does).
-Freshness is 26 hours plus 6 hours grace everywhere.
+Freshness is 26 hours plus 6 hours grace everywhere. Completeness takes its event dates from the
+partition (`event_date_source` `partition`): each `dt=` day whose capture is not empty, so a day
+Garmin answered with an empty payload counts as a gap. For the important collections it also
+counts the gap from the newest such day to today (`gap_to_now`), because Garmin writes an empty
+capture every day: without it, a stream that stopped producing data would look fresh and complete.
+A break from wearing the device therefore warns, which is the intended signal.
 
 | Collection | Checks | Completeness gap |
 |---|---|---|
@@ -210,12 +215,12 @@ warnings: a training break produces one, which is the intended signal.
 
 ## Open Questions & Future Decisions
 
+### Resolved
+1. ✅ **Freshness for collections the hardware never produces** is settled by the checks design: an
+   expected-empty collection with no captures passes freshness, and one that goes stale warns.
+
 ### Deferred
-1. **Freshness for collections the hardware never produces.** A `skip_if_empty` or `skip_if_none`
-   collection that a person's devices never produce has no captures, so its freshness check would
-   fail forever. The checks design decides whether a collection that has never had a capture
-   passes freshness or reports an action to deselect it.
-2. **Collections that change on every pull.** `lifestyle_logging` and `device_settings` differ on
+1. **Collections that change on every pull.** `lifestyle_logging` and `device_settings` differ on
    nearly every capture; if the difference is a volatile field, they grow daily. Normalizing would
    have to be weighed against byte-faithful capture.
 

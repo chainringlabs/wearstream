@@ -70,8 +70,9 @@ Design: [auth-design.md](auth-design.md). Prefix `WHOOP-AUTH`. Facets: `STORE`, 
 
 ## Token health check
 
-- [ ] **WHOOP-AUTH-HEALTH-001**: When `whoop_token_health` runs while the Whoop source is not waiting for a credential, it shall fail at ERROR with the action to run `wearstream auth whoop` if the token file is missing or unreadable or its `expires_at` is more than 90 minutes in the past, and pass otherwise, without contacting Whoop.
-- [ ] **WHOOP-AUTH-HEALTH-002**: When `whoop_token_health` runs, it shall read the source's state from `/state/sources/whoop.json` (a missing document meaning active) and capture's state from `/state/heartbeat.json`, and shall report that the source is waiting for a credential, or that capture is paused, instead of failing while either is the case.
+- [ ] **WHOOP-AUTH-HEALTH-001**: When `whoop_token_health` runs outside the checks component's suppression rule, it shall fail at ERROR with the action to run `wearstream auth whoop` if the token file is missing or unreadable or its `expires_at` is more than 90 minutes in the past, and pass otherwise, without contacting Whoop.
+- [ ] **WHOOP-AUTH-HEALTH-003**: `whoop_token_health` shall return its result as a source's own check (CHECKS-RUN-007).
+- [ ] **WHOOP-AUTH-HEALTH-002**: While the checks component's suppression rule applies to the Whoop source (waiting for a credential, in a rate-limit cooldown, or capture paused, until the first successful source unit after resuming), `whoop_token_health` shall report `suppressed` with the reason instead of failing.
 
 ## Credential-safe logging
 

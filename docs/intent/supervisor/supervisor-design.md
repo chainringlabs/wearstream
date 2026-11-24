@@ -214,7 +214,9 @@ reduce the source's selection or raise its pacing.
 
 ### Failing jobs
 
-A tick **fails** when any of its units (not counting retries) ends `failed`, `killed` or
+Checks jobs are not counted here: a checks unit reports its findings itself and exits `0`, and a
+checks unit that is killed or crashes is reported by `run_killed` or `run_crashed`. For every other
+job, a tick **fails** when any of its units (not counting retries) ends `failed`, `killed` or
 `crashed`, and **succeeds** when all of them end `success`. Ticks whose units end only with
 outcomes that have their own events (`busy`, `interrupted`, `needs_auth`, `environment`,
 `rate_limited`) neither
@@ -269,6 +271,12 @@ An operator may run `wearstream run <source> <job> [--day D]` at any time; it ru
 `manual`. `--day` is required for a `partitioned` job and refused for any other; a wrong use
 exits `2` with a usage message.
 
+A hand-started run of a **`checks` job** takes the source's checks lock (exiting `5` if it is
+held), runs the checks, and exits; it skips every step below, because it makes no API calls,
+writes nothing to `/data`, and its checks are meant to run, reporting `suppressed`, exactly when
+the source is waiting or paused. It is recorded in the run log but not in `inflight.json`. The
+steps below apply to hand-started runs of every other job.
+
 In order, a hand-started run:
 1. checks the heartbeat: if the daemon is running with capture paused, it exits `3` with a
    message saying why; if no daemon is running, it runs the capture `self_test` itself and exits
@@ -308,7 +316,7 @@ rename, fsync the folder). The run log is JSON Lines, appended one line per writ
 | `heartbeat.json` | Daemon pid, phase (`starting`, `running`, `stopping`), last update, capture pause reason and next retry, each source's status |
 | `inflight.json` | Units started and not yet finished and repaired: run id, source, job, day, trigger, start time, `daemon` or `manual` |
 | `jobs/<source>.<job>.json` | Last tick, last completed tick, consecutive failed ticks |
-| `sources/<source>.json` | `active` or `waiting_for_auth`, any rate-limit cooldown end and the count of consecutive rate limits, since when, recorded credential fingerprint, first-run date, last reminder; read by checks and hand-started runs, where a missing document means `active` |
+| `sources/<source>.json` | `active` or `waiting_for_auth`, any rate-limit cooldown end and the count of consecutive rate limits, when the source last resumed (`resumed_at`: from a credential wait, a cooldown or a capture pause) and when a source unit of it last succeeded (`last_source_success_at`), since when, recorded credential fingerprint, first-run date, last reminder; read by checks and hand-started runs, where a missing document means `active` |
 | `backfill/<source>.<job>.json` | Pass position and pending-restart flag, `needs_refill` days, known-empty days with the date each was recorded, failed-attempt counts |
 | `runs/<YYYY-MM>.jsonl` | Run log: a `start` and a `finish` line per unit (trigger, day, outcome, exit code, duration, counts, error summary), and a `repaired` line after repair; the 13 most recent monthly files are kept |
 | `locks/` | Source and checks lock files, and `state.lock` |
@@ -370,8 +378,8 @@ failure is logged at WARNING and escalated by the daemon's `run_crashed` and `jo
 | `run_finished` | INFO | A unit succeeded; adds duration and capture counts |
 | `run_failed` | WARNING | A unit ended `failed`; adds counts and the error summary |
 | `run_crashed` | WARNING | A unit ended `crashed`; adds the exit code or signal |
-| `run_killed` | ERROR | A unit exceeded its time limit; action: check network and vendor status, or raise the job's time limit if runs are legitimately slow |
-| `run_busy` | WARNING | The source lock was held; usually a hand-started run |
+| `run_killed` | ERROR | A unit exceeded its time limit; action for a source unit: check network and vendor status, or raise the job's time limit if runs are legitimately slow; for a checks unit: a check is hanging, see the last check it logged |
+| `run_busy` | WARNING | The unit's lock (source or checks) was held; usually a hand-started run or command |
 | `run_repaired` | INFO | Repair ran after an interrupted, killed or crashed unit |
 | `tick_skipped` | INFO | A tick was skipped because the job still had scheduled work queued or running |
 | `catchup_scheduled` | INFO | A job was caught up |

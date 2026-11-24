@@ -134,6 +134,7 @@ One image, one entry point, `wearstream`, with these commands:
 | `wearstream daemon` | Container entry point | Runs the supervisor until stopped |
 | `wearstream run <source> <job> [--day D]` | The supervisor; an operator for a one-off | Executes one unit of work and exits |
 | `wearstream auth <source>` | The operator, once per source | Interactive credential bootstrap; writes to `/secrets` |
+| `wearstream accept-schema <source> <collection>` | The operator, after a schema-drift error | Accepts a vendor's payload change as the new expected shape |
 | `wearstream status` | The operator, any time | Prints a summary from `/state`: last runs, backfill progress, failing checks |
 | `wearstream healthcheck` | The container health check | Exits non-zero when the supervisor's heartbeat in `/state` is stale or capture is paused because `/data` or `/state` is unusable |
 

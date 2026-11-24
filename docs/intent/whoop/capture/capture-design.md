@@ -162,7 +162,9 @@ credential, and never makes the unit move on to the next collection.
 ## Collection checks
 
 The checks job evaluates these settings for each collection (the checks component defines what
-each check does). Each check looks at the 14 most recent `dt=` folders that have data.
+each check does). The four range collections are stored as Whoop's page wrapper
+(`{"records": [...], "next_token": ...}`), so their checks look at the wrapper's records
+(`unnest_records` on); the two snapshots are single objects (`unnest_records` off). Each check looks at the 14 most recent `dt=` folders that have data.
 
 | Collection | Freshness | Completeness | Schema drift | Content health |
 |---|---|---|---|---|
