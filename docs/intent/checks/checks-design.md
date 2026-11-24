@@ -142,6 +142,10 @@ so no check sees it; the folder simply looks like it has one fewer capture.
 
 ## Running the checks
 
+A source provides its check settings from the effective configuration (so Garmin's selection lists
+apply) and its own checks; its `checks` unit hands both to this component, and configuration
+validation and `accept-schema` read the same settings without running anything.
+
 A source's `checks` unit runs the source's own checks first (they are the most urgent), then every
 collection check in its settings, one after another in the unit's process. Each check has a soft
 limit of 60 seconds; a check that exceeds it is abandoned with the same result as a check that

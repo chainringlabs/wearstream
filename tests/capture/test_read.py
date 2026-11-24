@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 from capture_helpers import DAY, put, put_capture
 
-from wearstream.capture import capture, has_data, list_captures
+from wearstream.capture import capture, has_data, list_captures, list_days
 
 
 def _meta(source: str = "whoop", collection: str = "sleep", **extra: Any) -> dict[str, Any]:
@@ -151,3 +151,14 @@ def test_a_folder_has_data_only_when_it_holds_a_capture(root: Path, folder: Path
     capture(root, "whoop", "sleep", b"{}", {"http_status": 200}, dt=DAY)
     assert has_data(root, "whoop", "sleep", DAY)
     assert not has_data(root, "whoop", "sleep", "2026-11-21")
+
+
+# @spec CAPTURE-READ-005
+def test_days_are_the_valid_dt_folders_newest_first(root: Path) -> None:
+    collection = root / "whoop" / "sleep"
+    for name in ("dt=2026-11-20", "dt=2026-11-22", "dt=2026-02-30", "dt=junk", "other"):
+        (collection / name).mkdir(parents=True)
+    (collection / "dt=2026-11-23").write_text("a file, not a folder")
+    assert list_days(root, "whoop", "sleep") == ["2026-11-22", "2026-11-20"]
+    assert list_days(root, "whoop", "absent") == []
+    assert list_days(root, "whoop", "../sleep") == []

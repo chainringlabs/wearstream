@@ -9,6 +9,15 @@ from wearstream.state import iso
 from wearstream.supervisor.runtime import JobSchedule, Tick
 from wearstream.supervisor.units import Unit
 
+FAILURES = ("failed", "killed", "crashed")
+
+
+def tick_outcome(outcomes: list[str]) -> str:
+    """`success`, `failed` if any unit failed, otherwise the first outcome that wasn't success."""
+    if any(o in FAILURES for o in outcomes):
+        return "failed"
+    return next((o for o in outcomes if o != "success"), "success")
+
 
 class TickMixin:
     # @spec SUPERVISOR-SCHED-002
@@ -97,14 +106,16 @@ class TickMixin:
             self._complete_tick(tick)
 
     # @spec SUPERVISOR-FAIL-001, SUPERVISOR-FAIL-002, SUPERVISOR-FAIL-003, SUPERVISOR-BACKFILL-006
+    # @spec SUPERVISOR-STATE-008
     def _complete_tick(self: Any, tick: Tick) -> None:
         schedule = self.schedules[tick.job]
         job = schedule.job
         schedule.last_completed = (
             max(tick.at, schedule.last_completed) if schedule.last_completed else tick.at
         )
+        schedule.last_outcome = tick_outcome(tick.outcomes)
         if job.kind != "checks":
-            if any(o in ("failed", "killed", "crashed") for o in tick.outcomes):
+            if any(o in FAILURES for o in tick.outcomes):
                 schedule.failed_ticks += 1
                 if (
                     schedule.failed_ticks >= self.values["WEARSTREAM_FAILING_TICKS"]

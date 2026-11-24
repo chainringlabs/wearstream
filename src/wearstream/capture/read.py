@@ -81,3 +81,22 @@ def list_captures(root: Path, source: str, collection: str, day: str) -> list[St
 def has_data(root: Path, source: str, collection: str, day: str) -> bool:
     """Whether the folder holds at least one capture."""
     return bool(list_captures(root, source, collection, day))
+
+
+# @spec CAPTURE-READ-005
+def list_days(root: Path, source: str, collection: str) -> list[str]:
+    """The days of a collection's `dt=` folders, newest first."""
+    if not (valid_name(source) and valid_name(collection)):
+        return []
+    try:
+        with os.scandir(Path(root) / source / collection) as entries:
+            days = [
+                entry.name[3:]
+                for entry in entries
+                if entry.name.startswith("dt=")
+                and entry.is_dir(follow_symlinks=False)
+                and valid_day(entry.name[3:])
+            ]
+    except FileNotFoundError, NotADirectoryError:
+        return []
+    return sorted(days, reverse=True)

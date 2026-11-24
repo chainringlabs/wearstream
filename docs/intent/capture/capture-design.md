@@ -170,7 +170,8 @@ make a later capture sort as older; container clocks follow host time synchronis
 such steps are rare and small, and this is accepted rather than adjusting recorded fetch times.
 
 The component provides the read helpers the rest of WearStream uses: list the captures of a
-`(source, collection, dt)` folder newest first, and tell whether a folder has data.
+`(source, collection, dt)` folder newest first, list a collection's days (its `dt=` folders)
+newest first, and tell whether a folder has data.
 
 ## Skip-identical
 
