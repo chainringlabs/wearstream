@@ -1,14 +1,14 @@
 """The `wearstream` command line.
 
 `version` and `--help` never read configuration, so they can't fail on it; every other command
-reads only the settings it uses (operator-interface design, per-command settings). `auth`
-arrives with the sources.
+reads only the settings it uses (operator-interface design, per-command settings).
 """
 
 from __future__ import annotations
 
 import argparse
 import os
+import sys
 from typing import Any
 
 from wearstream import __version__, log
@@ -16,6 +16,36 @@ from wearstream.settings import load, paths
 from wearstream.settings.report import describe
 
 _DIRS = ("WEARSTREAM_DATA_DIR", "WEARSTREAM_STATE_DIR", "WEARSTREAM_SECRETS_DIR")
+
+
+def _add_auth(commands: Any) -> None:
+    auth = commands.add_parser(
+        "auth",
+        help="authorize WearStream with a source (interactive; run with docker exec -it)",
+        description="Get a source's first credential. Needs an interactive terminal.",
+    )
+    auth.add_argument("source", choices=("whoop", "garmin"), help="whoop or garmin")
+    auth.add_argument(
+        "--new-account",
+        action="store_true",
+        help="accept a grant for a different account than the current token's",
+    )
+
+
+# @spec OPERATOR-CMD-002
+def _auth(source: str, new_account: bool) -> int:
+    if not sys.stdin.isatty():
+        print(
+            f"`wearstream auth {source}` is interactive: run it with `docker exec -it <container> "
+            f"wearstream auth {source}` or `docker run -it`."
+        )
+        return 2
+    if source != "whoop":
+        print(f"`wearstream auth {source}` is not available in this build yet.")
+        return 2
+    from wearstream.whoop.bootstrap import auth_whoop
+
+    return auth_whoop(new_account)
 
 
 def _add_state_commands(commands: Any) -> None:
@@ -69,6 +99,7 @@ def _parser() -> argparse.ArgumentParser:
         help="exit 0 when the daemon is healthy (for the container health check)",
         description="Exit 0 when the daemon's heartbeat is fresh and capture is not paused.",
     )
+    _add_auth(commands)
     _add_state_commands(commands)
     commands.add_parser(
         "config",
@@ -86,7 +117,7 @@ def _config() -> int:
     return 2 if loaded.problems else 0
 
 
-# @spec OPERATOR-CMD-003, OPERATOR-SET-009, SUPERVISOR-HEALTH-002
+# @spec OPERATOR-CMD-001, OPERATOR-CMD-003, OPERATOR-SET-009, SUPERVISOR-HEALTH-002
 def main(argv: list[str] | None = None) -> int:
     """Run a command and return its exit code."""
     parser = _parser()
@@ -106,6 +137,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_command(
             args.source, args.job, args.day, args.run_id, args.trigger, args.result_fd
         )
+    if args.command == "auth":
+        return _auth(args.source, args.new_account)
     if args.command == "accept-schema":
         from wearstream.checks.accept import accept_schema
 

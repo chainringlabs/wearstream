@@ -21,6 +21,7 @@ class Declaration:
 
 
 # What each source declares (its capture design); the tunable values come from settings.
+# @spec WHOOP-CAPTURE-JOB-001, WHOOP-CAPTURE-JOB-002, WHOOP-CAPTURE-JOB-003
 DECLARATIONS = {
     "whoop": {
         "range": Declaration("partitioned", include_today=True),
@@ -35,6 +36,7 @@ DECLARATIONS = {
 }
 
 
+# @spec WHOOP-CAPTURE-JOB-004
 def setting(source: str, job: str, field: str) -> str:
     """The setting that holds `field` for a job (Whoop's capture jobs share one schedule)."""
     if field == "SCHEDULE" and source == "whoop" and job in ("range", "snapshots"):

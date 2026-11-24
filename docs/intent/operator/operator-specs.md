@@ -42,8 +42,8 @@ Design: [operator-design.md](operator-design.md). Prefix `OPERATOR`. Facets: `PA
 
 ## Commands
 
-- [ ] **OPERATOR-CMD-001**: The `wearstream` entry point shall provide `daemon`, `run`, `auth`, `accept-schema`, `status`, `config`, `healthcheck` and `version`, each accepting `--help`.
-- [ ] **OPERATOR-CMD-002**: If an interactive command (`auth`) finds no terminal on its input, then it shall exit with code 2 and a message to run it with `docker exec -it` or `docker run -it`.
+- [x] **OPERATOR-CMD-001**: The `wearstream` entry point shall provide `daemon`, `run`, `auth`, `accept-schema`, `status`, `config`, `healthcheck` and `version`, each accepting `--help`.
+- [x] **OPERATOR-CMD-002**: If an interactive command (`auth`) finds no terminal on its input, then it shall exit with code 2 and a message to run it with `docker exec -it` or `docker run -it`.
 - [x] **OPERATOR-CMD-003**: `wearstream version` shall print the installed version and exit with code 0.
 
 ## `wearstream status`
@@ -74,4 +74,4 @@ Design: [operator-design.md](operator-design.md). Prefix `OPERATOR`. Facets: `PA
 ## Redaction
 
 - [x] **OPERATOR-REDACT-001**: Before writing an event, a process shall replace with `[redacted]` the value of every field, at any depth, whose name contains case-insensitively `password`, `passwd`, `secret`, `token`, `apikey`, `api_key`, `authorization`, `credential`, `private_key`, `privatekey`, `signature`, `sessionid`, `session_id` or `cookie`.
-- [ ] **OPERATOR-REDACT-002**: No event defined by WearStream shall have a field whose name matches the list in OPERATOR-REDACT-001 (a pagination token is logged as `cursor`, a token-store path as `store_path`, a credential fingerprint as `fingerprint`), and payload key names and file paths shall travel as list values, never as field names.
+- [x] **OPERATOR-REDACT-002**: No event defined by WearStream shall have a field whose name matches the list in OPERATOR-REDACT-001 (a pagination token is logged as `cursor`, a token-store path as `store_path`, a credential fingerprint as `fingerprint`), and payload key names and file paths shall travel as list values, never as field names.
