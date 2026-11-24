@@ -53,6 +53,7 @@ snapshot collections; both are child processes started by the supervisor or by h
 
 - [ ] **WHOOP-CAPTURE-REPORT-001**: When a Whoop data request fails after its retries, or fails without retry, the Whoop source shall report a failed request for that collection.
 - [ ] **WHOOP-CAPTURE-REPORT-002**: When a Whoop unit receives a needed-credential report from the token lifecycle, it shall make no further requests and report the needed credential.
+- [ ] **WHOOP-CAPTURE-REPORT-004**: If a Whoop data request is still answered with HTTP 429 after its retries, then the Whoop unit shall make no further requests and report that Whoop is rate-limiting it, with the last `Retry-After` in seconds as the requested wait when present.
 - [ ] **WHOOP-CAPTURE-REPORT-003**: When a Whoop unit receives a token failure that is not a needed credential, it shall make no further requests and report a failed request for each collection not yet captured.
 
 ## Collection checks

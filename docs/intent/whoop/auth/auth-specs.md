@@ -65,7 +65,7 @@ Design: [auth-design.md](auth-design.md). Prefix `WHOOP-AUTH`. Facets: `STORE`, 
 
 ## Credential fingerprint
 
-- [ ] **WHOOP-AUTH-FP-001**: The Whoop source's credential fingerprint shall be the sha256 of the token file's bytes (or the name of the error that prevented reading them), the token file's mode and owner, and the bytes of the client id and client secret files (or `absent` for each missing one), the mode and owner of `/secrets/whoop`, and whether a temporary file can be created there at that moment, computed without a network call.
+- [ ] **WHOOP-AUTH-FP-001**: The Whoop source's credential fingerprint shall be the sha256 of, for the token file and the client id and client secret files, whether each exists and its size, modification time in nanoseconds, inode, mode and owner, followed by the mode and owner of `/secrets/whoop` and whether a temporary file can be created there at that moment, computed without a network call and without reading any file's contents.
 - [ ] **WHOOP-AUTH-FP-002**: When the Whoop source reports a needed credential, it shall take the credential fingerprint at that moment and include it in the unit's result.
 
 ## Token health check

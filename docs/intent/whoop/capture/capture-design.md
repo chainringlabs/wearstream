@@ -154,6 +154,7 @@ credential, and never makes the unit move on to the next collection.
 | A data request fails after its retries, or raises `WhoopAPIError` | A failed request (child exit `1` unless something outranks it) |
 | A token failure that needs a person, or a data request answered with 403 (see the token lifecycle) | A needed credential (child exit `4`); the unit makes no further requests |
 | A data request answered with 401 | A failed request; the token is marked expired so a later unit refreshes |
+| A data request still answered with 429 after its retries | Rate limited (child exit `6`), with the last `Retry-After` as the wait when present; the unit makes no further requests |
 | Less than 60 seconds left before the deadline | A failed request for each collection not yet captured |
 | A token failure that doesn't need a person | A failed request; the unit makes no further requests, since every later request needs the same token |
 | A pagination guard fired | Not a failure; a WARNING |
