@@ -34,7 +34,7 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 
 - [ ] **SUPERVISOR-CHILD-001**: When the supervisor starts a unit, it shall start `wearstream run` as a child in a new process group, passing the source, job, day where the job is `partitioned`, run id, trigger, and the write end of a dedicated result pipe.
 - [ ] **SUPERVISOR-CHILD-002**: When the child starts, it shall take a non-blocking exclusive `flock` on `/state/locks/<source>.lock` for a source unit or `/state/locks/<source>.checks.lock` for a checks unit, hold it until it exits, and exit with code 5 if the lock is held by another process.
-- [ ] **SUPERVISOR-CHILD-003**: Before exiting after running its job, the child shall write one JSON result to the result pipe holding the counts of captures written, skipped as identical, refused as non-2xx and failed, a short error summary, for a capture that failed with `error_kind` `environment` its errno and the folder it happened in, and, when the source reported a needed credential, that fact and the source's credential fingerprint taken when the source found the credential unusable.
+- [ ] **SUPERVISOR-CHILD-003**: Before exiting after running its job, the child shall write one JSON result to the result pipe holding the counts of captures written, skipped as identical, refused as non-2xx and failed, a short error summary, for a capture that failed with `error_kind` `environment` its errno and the folder it happened in, when the source reported a needed credential, that fact and the source's credential fingerprint taken when the source found the credential unusable, and, when the source reported a rate limit, the wait the vendor asked for as `retry_after_seconds` (whole seconds) if it gave one.
 - [ ] **SUPERVISOR-CHILD-004**: When the child receives a capture result with `error_kind` `environment`, it shall end its job without making further requests or captures.
 - [ ] **SUPERVISOR-CHILD-005**: When the child finishes its job, it shall exit with the first code that applies: 75 if it received a stop signal (`SIGTERM` or `SIGINT`, or its own time limit for a hand-started run); 3 if any capture failed with `error_kind` `environment`; 4 if the source reported that a person must provide a credential; 6 if the source reported that the vendor is rate-limiting it; 1 if the source reported a failed request or any capture ended `failed`; otherwise 0. A capture refused as non-2xx shall not by itself make the exit code 1.
 - [ ] **SUPERVISOR-CHILD-006**: If an unexpected exception reaches the child's top level, then the child shall log it at WARNING and exit with code 70.
@@ -71,7 +71,7 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 
 ## Rate limiting
 
-- [ ] **SUPERVISOR-RATE-001**: When a source unit ends `rate_limited`, the supervisor shall empty that source's queue and record in `/state/sources/<source>.json` a cooldown ending after the wait the unit's result reports, or 60 minutes when it reports none, capped at 24 hours, and log `source_rate_limited` at WARNING with the end time.
+- [ ] **SUPERVISOR-RATE-001**: When a source unit ends `rate_limited`, the supervisor shall empty that source's queue and record in `/state/sources/<source>.json` a cooldown ending after the unit result's `retry_after_seconds`, or 60 minutes when it has none, capped at 24 hours, and log `source_rate_limited` at WARNING with the end time.
 - [ ] **SUPERVISOR-RATE-002**: While a source's cooldown has not ended, the supervisor shall start no source unit of that source, skip its ticks with `tick_skipped`, and enqueue no backfill unit for it.
 - [ ] **SUPERVISOR-RATE-003**: When a source unit ends `rate_limited` for the third time with no source unit of that source ending `success` in between, the supervisor shall log `source_rate_limited_repeatedly` at ERROR with an action to check the vendor's status and reduce the source's selection or raise its pacing.
 - [ ] **SUPERVISOR-RATE-004**: When a source's cooldown ends, the supervisor shall run catch-up for that source's jobs.
@@ -92,7 +92,7 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 
 ## Catch-up
 
-- [ ] **SUPERVISOR-CATCHUP-001**: When the supervisor finishes startup, a source resumes from `waiting_for_auth`, a source's rate-limit cooldown ends, or capture resumes from a pause, the supervisor shall fire one tick with trigger `catchup` for each affected job whose last completed tick (all its units ended, whatever their outcomes) is older than the job's interval or that has no completed tick.
+- [ ] **SUPERVISOR-CATCHUP-001**: When the supervisor finishes startup, a source resumes from `waiting_for_auth`, a source's rate-limit cooldown ends, or capture resumes from a pause, the supervisor shall fire one tick with trigger `catchup` for each affected job whose last completed tick (all its units ended, whatever their outcomes; a tick with units dropped by emptying the source's queue never completes) is older than the job's interval or that has no completed tick.
 
 ## Backfill
 

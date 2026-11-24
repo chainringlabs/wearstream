@@ -105,8 +105,10 @@ the run id and trigger and a pipe for the result. In order, the child:
 2. runs the job, collecting the capture outcomes of every capture it makes.
 3. writes one JSON result to the pipe: counts of captures written, skipped as identical, refused
    as non-2xx and failed, a short error summary, for an `environment` failure its errno and the
-   folder it happened in, and, when the source reported a needed credential, that fact and the
-   source's credential fingerprint at the moment it found the credential unusable.
+   folder it happened in, when the source reported a needed credential that fact and the
+   source's credential fingerprint at the moment it found the credential unusable, and when the
+   source reported a rate limit the wait the vendor asked for, in whole seconds
+   (`retry_after_seconds`), if it gave one.
 4. exits with the code that describes the run, choosing the first that applies: `75` if it
    received a stop signal; `3` if any capture failed with `error_kind` `environment` (the child
    ends the job at the first one, making no further requests); `4` if the source reported that
@@ -223,8 +225,10 @@ ERROR; the next successful tick logs that the job recovered.
 
 At startup, and whenever a source resumes from `waiting_for_auth`, a source's rate-limit
 cooldown ends, or capture resumes from a pause, every job whose last **completed tick** (all its units finished, whatever their outcomes)
-is older than its interval gets one tick immediately, with trigger `catchup`. A job with no
-completed tick is caught up, so a fresh install captures as soon as it starts.
+is older than its interval gets one tick immediately, with trigger `catchup`. A tick whose units
+were dropped when the source's queue was emptied (for a credential wait or a rate-limit cooldown)
+never completes, so the job is caught up when the source resumes. A job with no completed tick is
+caught up, so a fresh install captures as soon as it starts.
 
 ## Backfill
 
@@ -308,6 +312,7 @@ rename, fsync the folder). The run log is JSON Lines, appended one line per writ
 | `backfill/<source>.<job>.json` | Pass position and pending-restart flag, `needs_refill` days, known-empty days with the date each was recorded, failed-attempt counts |
 | `runs/<YYYY-MM>.jsonl` | Run log: a `start` and a `finish` line per unit (trigger, day, outcome, exit code, duration, counts, error summary), and a `repaired` line after repair; the 13 most recent monthly files are kept |
 | `locks/` | Source and checks lock files, and `state.lock` |
+| `<source>/` | Documents a source keeps for itself (Garmin's last password sign-in), written under the same atomic-write and `state.lock` rules |
 
 `state.lock` serializes each read-modify-write of a JSON document between the daemon and
 hand-started runs. It is held for one update at a time and waited for at most 10 seconds; an
