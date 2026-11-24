@@ -11,25 +11,29 @@ is the interface. Design: `docs/high-level-design.md`.
 
 ## Tech Stack
 
-- Language: Python 3.15, managed with uv (one `pyproject.toml`, one `uv.lock`)
-- HTTP: httpx (Whoop); `garminconnect` (Garmin Connect, consumer sign-in)
-- Logging: structlog (console by default, JSON Lines with `LOG_FORMAT=json`)
-- Lint: Ruff; tests: pytest
-- Runtime: Chainguard distroless Python image, non-root, read-only root filesystem, `linux/amd64`
-- CI: `chainringlabs/ci` shared workflows (supply chain, image build/sign/attest, GHCR retention); Renovate
+- Language: Python 3.15, the version the Chainguard runtime ships, declared once as `requires-python` in `pyproject.toml`; managed with uv (one `pyproject.toml`, one `uv.lock`, no requirements files)
+- HTTP: httpx (Whoop); `garminconnect` with its `curl_cffi` transport (Garmin Connect, consumer sign-in)
+- Logging: structlog (console by default, JSON Lines with `WEARSTREAM_LOG_FORMAT=json`)
+- Lint and format: Ruff; tests: pytest with coverage (at least 90%)
+- Runtime: Chainguard distroless Python image, `tini` as PID 1, non-root, read-only root filesystem, `linux/amd64`
+- CI: `chainringlabs/ci` shared workflows (supply chain, image build/sign/attest, GHCR retention) plus this repository's `test.yml`; Renovate with the `chainringlabs/renovate-config` preset
 - Storage: local filesystem only (`/data`, `/state`, `/secrets`); no database
 
 ## Commands
 
-*(Planned; the code does not exist yet.)*
+*(The code does not exist yet; these are the planned commands.)*
 
 - `uv sync --frozen` — install from the lock
-- `uv run ruff check --no-cache` — lint
-- `uv run pytest` — run tests
+- `uv lock --check` — the lock matches `pyproject.toml`
+- `uv run ruff check --no-cache` and `uv run ruff format --check` — lint and format
+- `uv run pytest` — run tests (with coverage)
+- `uv run python scripts/check_specs.py` — every `@spec` cites an existing spec ID
+- `uv run python scripts/check_sizes.py` — file and function size limits
 - `wearstream daemon` — run the supervisor (the container entry point)
-- `wearstream run <source> <job> [--day D]` — run one unit of work
-- `wearstream auth whoop|garmin` — one-time credential bootstrap (interactive)
-- `wearstream status` — summary of runs, backfill and checks from `/state`
+- `wearstream run <source> <job> [--day D]` — run one unit of work by hand
+- `wearstream auth whoop|garmin` — interactive credential bootstrap
+- `wearstream accept-schema <source> <collection>` — accept a payload shape change
+- `wearstream status`, `wearstream config`, `wearstream healthcheck`, `wearstream version`
 
 ## Architecture
 
@@ -39,9 +43,10 @@ delivery. Sources depend on the core components, never the reverse.
 
 ## Environment Variables
 
-*(Defined in the operator-interface design; none are final yet.)* Credentials are supplied
-as secret files, never as plain environment values. Template: `.env.example` once defined.
-Never commit `.env`.
+Every setting is a `WEARSTREAM_` variable, listed with its default and bounds in
+`docs/intent/operator/operator-design.md` and in `.env.example`. Only `WEARSTREAM_SOURCES` is
+required. Credentials are files under `/secrets`, never environment values: a credential-like
+variable stops startup. Never commit `.env`.
 
 ## LID
 - Mode: Full
@@ -71,7 +76,6 @@ Stop after each phase for user review. **Docs carry current intent, written to b
 | Design tree (sub-HLDs, LLDs, their specs) | `docs/intent/` — one folder per node |
 | EARS specs | beside each design doc as `{node}-specs.md` in the node's folder under `docs/intent/` |
 | Decision docs | `docs/decisions/` (project-level) and `docs/intent/<segment>/decisions/` |
-| Arrow of intent overlay | `docs/arrows/index.yaml` and per-segment docs in `docs/arrows/` |
 
 ### Terminology
 
@@ -87,7 +91,7 @@ Stop after each phase for user review. **Docs carry current intent, written to b
 Annotate code and tests with `@spec` comments citing EARS IDs:
 
 ```
-# @spec SUPERVISOR-EXEC-001
+# @spec SUPERVISOR-CHILD-001
 ```
 
 Place the annotation at the *entry point of the behavior's implementation graph* — the topmost function or module owning the specified behavior, not every helper. When a behavior spans multiple subsystems (UI + API + database, for example), annotate at the entry point in each subsystem. Tests follow the same rule: annotate the test that directly exercises the spec, not every inner assertion.

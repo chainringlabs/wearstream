@@ -29,9 +29,11 @@ Design: [operator-design.md](operator-design.md). Prefix `OPERATOR`. Facets: `PA
 - [ ] **OPERATOR-SET-008**: A process shall report as invalid a `BACKFILL_FROM` date in the future, a `WEARSTREAM_WHOOP_REQUESTS_PER_MINUTE` outside 1 to 90, a `WEARSTREAM_GARMIN_PACING` below 2, a `WEARSTREAM_FAILING_TICKS` outside 1 to 100, and a `WEARSTREAM_LOG_LEVEL` other than `INFO` or `DEBUG`.
 - [ ] **OPERATOR-SET-009**: Each command shall read only the settings the design's per-command table assigns it (`auth` its source's settings and time limits whatever `WEARSTREAM_SOURCES` says; `accept-schema` its source's checks time limit and Garmin selection lists), and `version` and `--help` shall never fail on configuration or the environment.
 
+- [ ] **OPERATOR-SET-010**: Every process shall set its file-creation mask from `WEARSTREAM_UMASK` (default `022`) before creating any file, and report as invalid a value that is not three or four octal digits from `000` to `077`.
+
 ## Refused environment
 
-- [ ] **OPERATOR-ENV-001**: If the environment holds a variable whose name, compared case-insensitively, starts with `WEARSTREAM_`, `WHOOP_` or `GARMIN` and contains `SECRET`, `PASSWORD`, `PASSWD`, `TOKEN` or `API_KEY`, and is not a current or retired WearStream setting or `GARMINTOKENS`, then every process other than `version` and `--help` shall refuse to start, naming the variable and saying to remove it because credentials are read only from files under `/secrets`.
+- [ ] **OPERATOR-ENV-001**: If the environment holds a variable whose name, compared case-insensitively, starts with `WEARSTREAM_`, `WHOOP_` or `GARMIN` and contains `SECRET`, `PASSWORD`, `PASSWD`, `TOKEN` or `API_KEY`, and is not a current or retired WearStream setting or `GARMINTOKENS`, then every process other than `version` and `--help` shall refuse to start, naming the variable and saying to remove it because credentials are read only from files under `/secrets`, exiting with code 2 (`wearstream healthcheck` with code 1).
 
 ## Validation
 
