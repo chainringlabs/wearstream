@@ -35,7 +35,7 @@ jobs:
     needs: release-check
     permissions:
       contents: read
-    uses: chainringlabs/ci/.github/workflows/supply-chain.yml@4a56829e5f1be54347d6708b0a86972e56d594ac # v1.3.0
+    uses: chainringlabs/ci/.github/workflows/supply-chain.yml@9f6bdfe7ee10489a9dd82ac1c566ddaac8cd61e6 # v1.4.0
     with:
       python-version: ${{ needs.release-check.outputs.python }}
     secrets:
@@ -50,4 +50,4 @@ jobs:
       id-token: write
       attestations: write
       artifact-metadata: write
-    uses: chainringlabs/ci/.github/workflows/docker-publish.yml@4a56829e5f1be54347d6708b0a86972e56d594ac # v1.3.0
+    uses: chainringlabs/ci/.github/workflows/docker-publish.yml@9f6bdfe7ee10489a9dd82ac1c566ddaac8cd61e6 # v1.4.0

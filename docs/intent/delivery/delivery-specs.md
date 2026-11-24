@@ -38,13 +38,13 @@ in a comment.
 - [x] **DELIVERY-CI-007**: `supply-chain.yml` shall call the shared `supply-chain.yml` on pull requests, every Monday at 13:00 UTC and on manual runs, with `python-version` from DELIVERY-CI-011, passing only the `SOCKET_SECURITY_API_KEY` secret, by name.
 - [x] **DELIVERY-CI-008**: On pushes to `main` and on `v*` tags, `docker-publish.yml` shall run its release-check job, then call the shared `supply-chain.yml` with `python-version` from DELIVERY-CI-011, then call the shared `docker-publish.yml`, each only if the step before it succeeded.
 - [x] **DELIVERY-CI-009**: `ghcr-retention.yml` shall call the shared `ghcr-retention.yml` every Monday at 06:00 UTC and on manual runs, with `exclude-tags` keeping `latest` and every `X.Y.Z` version.
-- [ ] **DELIVERY-CI-010**: The repository shall have a ruleset on `main` requiring the `test.yml` jobs and the supply-chain scan to pass before merging, created together with those workflows.
+- [x] **DELIVERY-CI-010**: The repository shall have a ruleset on `main` requiring the `test.yml` jobs and the supply-chain scan to pass before merging, created together with those workflows.
 
 ## Releases
 
 - [x] **DELIVERY-REL-001**: The release-check job of `docker-publish.yml` shall run on every trigger, succeed without checks when the trigger is not a `v*` tag, and, for a `v*` tag, check out the full history and fail unless the tag equals `v` followed by the `pyproject.toml` version, that version is a plain `X.Y.Z`, and the tagged commit is an ancestor of `main`.
 - [x] **DELIVERY-REL-002**: Between releases, `pyproject.toml` shall hold the next release's version as `X.Y.Z.dev0`, so a build from `main` reports it through `wearstream version` and the sidecar `processor_version`.
-- [ ] **DELIVERY-REL-003**: The repository shall have a tag ruleset allowing only maintainers to create `v*` tags.
+- [x] **DELIVERY-REL-003**: The repository shall have a tag ruleset allowing only maintainers to create `v*` tags.
 
 ## Dependency updates
 
