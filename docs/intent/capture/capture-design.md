@@ -87,10 +87,12 @@ endpoint** what counts as data; the writer doesn't infer it.
   reports the failure in its totals. It does not swallow process-level interrupts
   (`KeyboardInterrupt`, `SystemExit`); those propagate after the temporary files are removed,
   so a stop or kill signal still ends the process.
-- **Hard links are required.** The writer has no non-atomic fallback. `self_test(root)` checks,
-  before any capture, that the root accepts a temporary file, a hard link, an `fsync` of a
-  folder, and removal of both, using dot-named files that no reader sees. A failure is reported
-  with the failing step and the operating-system error.
+- **Hard links are required.** The writer has no non-atomic fallback. `self_test(root,
+  folder=None)` checks, before any capture, that the root accepts a temporary file, a hard
+  link, an `fsync` of a folder, and removal of both, using dot-named files that no reader sees.
+  Given a `folder` inside the root, it runs the same steps there too, so a failure in one part
+  of the tree (a subfolder owned by another user, say) can be re-tested where it happened. A
+  failure is reported with the failing step, the folder and the operating-system error.
 - **Permissions follow the process umask.** Folders and files are created with the default
   modes filtered by the process umask (`0755` and `0644` under the common `022`). The operator
   controls privacy through the container user and umask; the writer does not override it.
@@ -248,8 +250,10 @@ folders the run was writing:
 `repair(root, source, days)` cleans up after an interrupted run. `days` is a set of partition
 days; repair visits the `dt={day}` folder of every collection of `source` for each day. In each
 folder it deletes temporary files, and only temporary files. A lone payload or lone sidecar is
-left in place and logged once, by this repair (`capture_orphan_found`): the writer never deletes
-a file it can't prove is its own unfinished work.
+left in place and logged by each repair that finds it (`capture_orphan_found`): the writer never
+deletes a file it can't prove is its own unfinished work. Repair never raises: an error in one
+folder is logged (`capture_repair_failed`) and repair moves on to the next, because a leftover
+temporary file is harmless and must not stop the supervisor from continuing.
 
 Repair is targeted, never a whole-tree walk. The supervisor records when each run starts and
 finishes; it runs repair over the days of a run it killed, and at startup over the days of any
@@ -275,6 +279,7 @@ invalid name in a debug context) is escaped, so it can't inject lines into the l
 | `capture_folder_sync_failed` | WARNING | A written capture's folder `fsync` failed; adds `error` |
 | `capture_orphan_found` | WARNING | Repair found a lone payload or sidecar; adds `path` |
 | `capture_tmp_removed` | INFO | Repair deleted temporary files; adds `count` |
+| `capture_repair_failed` | WARNING | Repair could not list or clean a folder; adds `error` |
 
 A single failed capture is a WARNING because the run continues and the next run retries. The
 run-level log line decides whether failures need a person.
