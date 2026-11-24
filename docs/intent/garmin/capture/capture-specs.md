@@ -54,7 +54,7 @@ entries; "selected" means turned on by the operator's selection and exclusion li
 
 ## Collection checks
 
-- [ ] **GARMIN-CAPTURE-CHECKS-001**: The Garmin source shall configure, for each selected important collection (`sleep`, `stress`, `hrv`, `respiration`, `spo2`, `resting_heart_rate`, `heart_rates`, `steps_intraday`, `intensity_minutes`, `training_status`, `training_readiness`, `max_metrics`, `body_battery`, `user_summary`), a freshness check, a completeness check (gap over 2 days, or 14 days if the collection is expected-empty), a schema-drift check and a content-health check.
+- [ ] **GARMIN-CAPTURE-CHECKS-001**: The Garmin source shall configure, for each selected important collection (`sleep`, `stress`, `hrv`, `respiration`, `spo2`, `resting_heart_rate`, `heart_rates`, `steps_intraday`, `intensity_minutes`, `training_status`, `training_readiness`, `max_metrics`, `body_battery`, `user_summary`), a freshness check, a completeness check (event dates from the partition, `gap_to_now` on; gap over 2 days, or 14 days if the collection is expected-empty), a schema-drift check and a content-health check.
 - [ ] **GARMIN-CAPTURE-CHECKS-002**: The Garmin source shall configure, for each selected expected-empty collection that is not important, a freshness check and a content-health check.
 - [ ] **GARMIN-CAPTURE-CHECKS-003**: The Garmin source shall configure, for every other selected catalog collection, a freshness check.
 - [ ] **GARMIN-CAPTURE-CHECKS-004**: The Garmin source shall configure no check for per-activity collections or deselected collections.

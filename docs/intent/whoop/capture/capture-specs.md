@@ -59,7 +59,8 @@ snapshot collections; both are child processes started by the supervisor or by h
 ## Collection checks
 
 - [ ] **WHOOP-CAPTURE-CHECKS-001**: The Whoop source shall configure, for each of `sleep`, `recovery` and `cycle`, a freshness check (newest capture within 26 hours plus 6 hours grace), a completeness check (event-date gap over 2 days; event date `start` for `sleep` and `cycle`, `created_at` for `recovery`), a schema-drift check and a content-health check.
-- [ ] **WHOOP-CAPTURE-CHECKS-002**: The Whoop source shall configure, for `workout`, only a completeness check (event-date gap over 14 days, event date `start`, including the gap from the newest workout to now) and a schema-drift check.
+- [ ] **WHOOP-CAPTURE-CHECKS-002**: The Whoop source shall configure, for `workout`, only a completeness check (event-date gap over 14 days, event date `start`, with `gap_to_now` on) and a schema-drift check.
 - [ ] **WHOOP-CAPTURE-CHECKS-003**: The Whoop source shall configure, for each of `profile` and `body_measurement`, a freshness check (newest capture within 26 hours plus 6 hours grace), a schema-drift check and a content-health check, and no completeness check.
 - [ ] **WHOOP-CAPTURE-CHECKS-004**: The Whoop `checks` job shall run the collection checks and `whoop_token_health`.
 - [ ] **WHOOP-CAPTURE-CHECKS-005**: The Whoop source shall configure every completeness check at warning severity.
+- [ ] **WHOOP-CAPTURE-CHECKS-006**: The Whoop source shall configure the checks of `sleep`, `recovery`, `workout` and `cycle` with `unnest_records` on and event dates read from the wrapper's records, and the checks of `profile` and `body_measurement` with `unnest_records` off.
