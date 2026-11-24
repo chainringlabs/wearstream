@@ -70,8 +70,9 @@ collection, each with a kind and flags. Every call goes through it.
 | `screen_secrets` | The payload passes through the capture component's `screen_secrets` before capture |
 
 - **Read-only by construction.** No mutating or sign-in method is ever in the catalog; a test
-  enforces it. A drift test lists readable library methods the catalog doesn't cover, so a new
-  library method is reviewed rather than called.
+  enforces it. Every readable library method the catalog doesn't call is listed as reviewed and
+  not captured, and a drift test fails when a library release adds one, so a new library method
+  is reviewed rather than called.
 - **Selection.** The operator's selection and exclusion lists of catalog names (exclusion wins;
   an empty selection means everything not excluded) turn entries off. A deselected entry is never
   called, has no checks, and is not one of the job's collections for backfill. By default
@@ -212,6 +213,7 @@ warnings: a training break produces one, which is the intended signal.
 | Deadline margin | No call starts with less than 3 minutes left | 60 seconds, as for Whoop | One Garmin call, with the library's own retries, can take about two minutes. |
 | Selection default | Everything selected | Exclude empty-on-most-hardware entries | A device that starts producing a stream begins populating without configuration. |
 | Sidecar request fields | Library method name and call arguments | HTTP URLs | The library doesn't expose its URLs; the method and arguments identify and replay the call, and match existing captures. |
+| Catalog coverage | The collections captured before WearStream (61 entries plus the fan-out); every other readable method listed as reviewed | Capture every readable method the library offers | Continuity of the existing tree comes first; most uncovered methods are aliases or range variants, and each new collection needs its own flags and checks. |
 
 ## Open Questions & Future Decisions
 
@@ -220,7 +222,9 @@ warnings: a training break produces one, which is the intended signal.
    expected-empty collection with no captures passes freshness, and one that goes stale warns.
 
 ### Deferred
-1. **Collections that change on every pull.** `lifestyle_logging` and `device_settings` differ on
+1. **Uncovered library endpoints** (issue #26): evaluate the readable methods listed as reviewed
+   and not captured, and catalog any that hold data the tree doesn't.
+2. **Collections that change on every pull.** `lifestyle_logging` and `device_settings` differ on
    nearly every capture; if the difference is a volatile field, they grow daily. Normalizing would
    have to be weighed against byte-faithful capture.
 

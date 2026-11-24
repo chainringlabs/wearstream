@@ -40,9 +40,10 @@ def _auth(source: str, new_account: bool) -> int:
             f"wearstream auth {source}` or `docker run -it`."
         )
         return 2
-    if source != "whoop":
-        print(f"`wearstream auth {source}` is not available in this build yet.")
-        return 2
+    if source == "garmin":
+        from wearstream.garmin.bootstrap import auth_garmin
+
+        return auth_garmin(new_account)
     from wearstream.whoop.bootstrap import auth_whoop
 
     return auth_whoop(new_account)
