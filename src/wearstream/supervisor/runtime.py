@@ -33,6 +33,7 @@ class JobSchedule:
     last_completed: dt.datetime | None = None
     failed_ticks: int = 0
     failing: bool = False
+    last_outcome: str | None = None
     backfill_day: str | None = None  # the UTC day a successful scheduled tick last started a pass
 
     def load(self, doc: dict[str, Any]) -> None:
@@ -40,11 +41,13 @@ class JobSchedule:
         self.last_completed = parse_time(doc.get("last_completed_tick"))
         self.failed_ticks = int(doc.get("consecutive_failed_ticks") or 0)
         self.failing = bool(doc.get("failing"))
+        self.last_outcome = doc.get("last_tick_outcome")
 
     def doc(self) -> dict[str, Any]:
         return {
             "last_tick": _iso(self.last_tick),
             "last_completed_tick": _iso(self.last_completed),
+            "last_tick_outcome": self.last_outcome,
             "consecutive_failed_ticks": self.failed_ticks,
             "failing": self.failing,
         }

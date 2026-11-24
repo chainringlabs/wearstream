@@ -48,11 +48,11 @@ Design: [operator-design.md](operator-design.md). Prefix `OPERATOR`. Facets: `PA
 
 ## `wearstream status`
 
-- [ ] **OPERATOR-STATUS-001**: When `wearstream status` runs, it shall read only `/state`, never the network or `/data`.
-- [ ] **OPERATOR-STATUS-002**: `wearstream status` shall print, in order: the daemon's state (running, or not running when the heartbeat is missing, unreadable or more than 120 seconds old), phase, version and any capture pause; the conditions needing attention, each with its action; each source's state, last successful unit, jobs' last completed ticks and outcomes, units in flight and backfill progress; and the checks warning, failing or suppressed.
-- [ ] **OPERATOR-STATUS-003**: For the sources the heartbeat lists as enabled, `wearstream status` shall list as needing attention: the daemon not running; capture paused; a source waiting for a credential; a source flagged as repeatedly rate-limited; a job flagged as failing; a check failing at error severity and not suppressed; and a state document it cannot read.
-- [ ] **OPERATOR-STATUS-004**: `wearstream status` shall exit with code 0 when nothing needs attention, 1 when something does, and 3 when `/state` holds no state.
-- [ ] **OPERATOR-STATUS-005**: Where `--json` is given, `wearstream status` shall print the same information as one JSON object carrying a `schema_version`.
+- [x] **OPERATOR-STATUS-001**: When `wearstream status` runs, it shall read only `/state`, never the network or `/data`.
+- [x] **OPERATOR-STATUS-002**: `wearstream status` shall print, in order: the daemon's state (running, or not running when the heartbeat is missing, unreadable or more than 120 seconds old), phase, version and any capture pause; the conditions needing attention, each with its action; each source's state, last successful unit, jobs' last completed ticks and outcomes, units in flight and backfill progress; and the checks warning, failing or suppressed.
+- [x] **OPERATOR-STATUS-003**: For the sources the heartbeat lists as enabled, `wearstream status` shall list as needing attention: the daemon not running; capture paused; a source waiting for a credential; a source flagged as repeatedly rate-limited; a job flagged as failing; a check failing at error severity and not suppressed; and a state document it cannot read.
+- [x] **OPERATOR-STATUS-004**: `wearstream status` shall exit with code 0 when nothing needs attention, 1 when something does, and 3 when `/state` holds no state.
+- [x] **OPERATOR-STATUS-005**: Where `--json` is given, `wearstream status` shall print the same information as one JSON object carrying a `schema_version`.
 
 ## `wearstream config`
 

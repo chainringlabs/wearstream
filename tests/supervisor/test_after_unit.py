@@ -100,3 +100,17 @@ def test_manual_runs_are_not_ticks(quiet: Supervisor, clock: FakeClock, tmp_path
     clock.advance(120)
     quiet.step()
     assert state_doc(tmp_path, "jobs/whoop.range.json") == before
+
+
+# @spec SUPERVISOR-STATE-008
+def test_a_completed_tick_records_its_outcome(
+    quiet: Supervisor, clock: FakeClock, spawner: FakeSpawner, tmp_path: Path
+) -> None:
+    outcomes = []
+    for hour, code in ((10, 0), (11, 1), (12, 5)):
+        _hour(quiet, clock, spawner, hour, code)
+        doc = state_doc(tmp_path, "jobs/whoop.range.json")
+        outcomes.append(doc["last_tick_outcome"])
+        assert doc["last_completed_tick"].startswith(f"2026-11-23T{hour:02d}:17")
+    assert outcomes == ["success", "failed", "busy"]
+    assert state_doc(tmp_path, "jobs/whoop.snapshots.json")["last_tick_outcome"] == "success"

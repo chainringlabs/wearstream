@@ -39,6 +39,7 @@ functions of those names in this component.
 - [x] **CAPTURE-READ-001**: The read helpers shall treat as a capture only a stem `{collection}_{ms}_{id}` in a `dt=` folder, with `collection` equal to the folder's collection, `ms` one or more decimal digits, `id` six lowercase hex characters and the name parsed from the right, that has exactly one payload file and exactly one `.meta.json` sidecar, where the sidecar parses as a JSON object whose `sha256` is a string and whose `source` and `collection` equal the folder's.
 - [x] **CAPTURE-READ-002**: The read helpers shall ignore dot-named files, files and folders whose names do not conform to the capture layout, `dt=` folders whose date is not a real calendar date, and subfolders inside a `dt=` folder.
 - [x] **CAPTURE-READ-003**: When the read helpers list a folder's captures, the system shall order them by `ms` newest first, and order captures with equal `ms` by stem with the lexicographically greater stem first.
+- [x] **CAPTURE-READ-005**: When asked for a collection's days, the read helpers shall return the dates of the collection's `dt=` folders that are real calendar dates, newest first, ignoring files and names that do not conform, and nothing for a source or collection name that is not valid.
 - [x] **CAPTURE-READ-004**: When asked whether a `(source, collection, dt)` folder has data, the read helpers shall answer yes if and only if the folder holds at least one capture (as defined in CAPTURE-READ-001).
 
 ## Skip-identical

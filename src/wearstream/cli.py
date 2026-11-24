@@ -1,20 +1,42 @@
 """The `wearstream` command line.
 
 `version` and `--help` never read configuration, so they can't fail on it; every other command
-reads only the settings it uses (operator-interface design, per-command settings). `auth`,
-`accept-schema` and `status` arrive with the components that own them.
+reads only the settings it uses (operator-interface design, per-command settings). `auth`
+arrives with the sources.
 """
 
 from __future__ import annotations
 
 import argparse
 import os
+from typing import Any
 
 from wearstream import __version__, log
 from wearstream.settings import load, paths
 from wearstream.settings.report import describe
 
 _DIRS = ("WEARSTREAM_DATA_DIR", "WEARSTREAM_STATE_DIR", "WEARSTREAM_SECRETS_DIR")
+
+
+def _add_state_commands(commands: Any) -> None:
+    """`accept-schema` and `status`, which work on `/state`."""
+    accept = commands.add_parser(
+        "accept-schema",
+        help="accept a collection's new payload shape after a schema_drift alert",
+        description="Record a collection's current payload keys as its accepted schema.",
+    )
+    accept.add_argument("source", help="whoop or garmin")
+    target = accept.add_mutually_exclusive_group(required=True)
+    target.add_argument("collection", nargs="?", help="the collection to accept")
+    target.add_argument(
+        "--all", action="store_true", help="every collection with a drift or unreadable baseline"
+    )
+    status = commands.add_parser(
+        "status",
+        help="show what WearStream is doing and what needs attention",
+        description="Show the daemon, each source, its jobs and backfill, and failing checks.",
+    )
+    status.add_argument("--json", action="store_true", help="print one JSON object")
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -47,6 +69,7 @@ def _parser() -> argparse.ArgumentParser:
         help="exit 0 when the daemon is healthy (for the container health check)",
         description="Exit 0 when the daemon's heartbeat is fresh and capture is not paused.",
     )
+    _add_state_commands(commands)
     commands.add_parser(
         "config",
         help="show every setting, its value and where it came from, and any problems",
@@ -83,6 +106,14 @@ def main(argv: list[str] | None = None) -> int:
         return run_command(
             args.source, args.job, args.day, args.run_id, args.trigger, args.result_fd
         )
+    if args.command == "accept-schema":
+        from wearstream.checks.accept import accept_schema
+
+        return accept_schema(args.source, args.collection, args.all)
+    if args.command == "status":
+        from wearstream.status import status_command
+
+        return status_command(as_json=args.json)
     if args.command == "healthcheck":
         from wearstream.supervisor import healthcheck
 
