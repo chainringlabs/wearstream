@@ -30,7 +30,7 @@ def test_uv_cooldown_is_seven_days_with_garminconnect_exempt(pyproject: dict) ->
 def test_layout_and_console_script(root: Path, pyproject: dict) -> None:
     for folder in ("src/wearstream", "tests", "scripts", "docs", ".claude"):
         assert (root / folder).is_dir(), folder
-    assert pyproject["project"]["scripts"] == {"wearstream": "wearstream.cli:main"}
+    assert pyproject["project"]["scripts"] == {"wearstream": "wearstream.cli:entry"}
 
 
 # @spec DELIVERY-REPO-005

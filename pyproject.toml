@@ -5,10 +5,12 @@ description = "Self-hosted capture of your raw Whoop and Garmin Connect data"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.15"
-dependencies = []
+dependencies = [
+    "structlog>=26.1.0",
+]
 
 [project.scripts]
-wearstream = "wearstream.cli:main"
+wearstream = "wearstream.cli:entry"
 
 [dependency-groups]
 dev = [
