@@ -229,7 +229,7 @@ troubleshooting. The shared logger's rule that tracebacks never render local var
 
 ## References
 
-- grecohome-dagster `docs/intent/garmin/auth/auth-design.md` and the token-store incident it
+- grecohome-dagster [`docs/intent/garmin/auth/auth-design.md`](https://github.com/tgrecojr/grecohome-dagster/blob/0cbe15c78d613ddcda68ce3d60927c36c855912f/docs/intent/garmin/auth/auth-design.md) and the token-store incident it
   records
 - `garminconnect` 0.3.x: `Garmin.login`, `client.token_file_path`, `client.dumps`,
   `_refresh_di_token`

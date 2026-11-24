@@ -293,6 +293,6 @@ variables (operator-interface design), as the backstop for a path nobody thought
 
 ## References
 
-- grecohome-dagster `docs/intent/whoop/auth/auth-design.md` and its incident history
+- grecohome-dagster [`docs/intent/whoop/auth/auth-design.md`](https://github.com/tgrecojr/grecohome-dagster/blob/0cbe15c78d613ddcda68ce3d60927c36c855912f/docs/intent/whoop/auth/auth-design.md) and its incident history
 - `docs/intent/supervisor/supervisor-design.md`: credential exchanges, exit code `4`,
   `waiting_for_auth`, credential fingerprint

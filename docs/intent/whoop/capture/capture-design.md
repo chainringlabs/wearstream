@@ -211,6 +211,6 @@ signal.
 
 ## References
 
-- grecohome-dagster `docs/intent/whoop/capture/capture-design.md`
+- grecohome-dagster [`docs/intent/whoop/capture/capture-design.md`](https://github.com/tgrecojr/grecohome-dagster/blob/0cbe15c78d613ddcda68ce3d60927c36c855912f/docs/intent/whoop/capture/capture-design.md)
 - `docs/intent/supervisor/supervisor-design.md`: jobs, guardrails, exit codes
 - `docs/intent/capture/capture-design.md`: skip-identical, "has data"

@@ -68,5 +68,5 @@ data-request retry never retries.
   tokens are single-use"
 - `docs/intent/supervisor/supervisor-design.md`: jobs, exit codes, "Obligations on other
   components"
-- grecohome-dagster `docs/intent/whoop/`: the token lifecycle and capture this source continues,
+- grecohome-dagster [`docs/intent/whoop/`](https://github.com/tgrecojr/grecohome-dagster/tree/0cbe15c78d613ddcda68ce3d60927c36c855912f/docs/intent/whoop/): the token lifecycle and capture this source continues,
   and the incident history behind its rules
