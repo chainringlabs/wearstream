@@ -62,7 +62,7 @@ person, who may use Whoop, Garmin or both.
   scheduled task needs a person.
 - A person reading only the log can tell whether WearStream is healthy, what it captured,
   and what to do when something needs them.
-- First start against an empty capture tree fills history back to a configured start date
+- First start against an empty capture tree fills history back to an operator-configured start date
   without the operator scheduling anything; restarts resume where they stopped.
 - The capture tree layout is byte-compatible with an existing grecohome-dagster bronze tree,
   so an existing tree can be mounted as `/data` and WearStream continues it.
@@ -135,7 +135,7 @@ One image, one entry point, `wearstream`, with these commands:
 | `wearstream run <source> <job> [--day D]` | The supervisor; an operator for a one-off | Executes one unit of work and exits |
 | `wearstream auth <source>` | The operator, once per source | Interactive credential bootstrap; writes to `/secrets` |
 | `wearstream status` | The operator, any time | Prints a summary from `/state`: last runs, backfill progress, failing checks |
-| `wearstream healthcheck` | The container health check | Exits non-zero when the supervisor's heartbeat in `/state` is stale |
+| `wearstream healthcheck` | The container health check | Exits non-zero when the supervisor's heartbeat in `/state` is stale or capture is paused because `/data` or `/state` is unusable |
 
 The operator reaches `auth` and `status` by running them in the existing container
 (`docker exec -it wearstream wearstream auth whoop`) or in a one-off container with the same
@@ -147,7 +147,7 @@ neither needs a shell in the image.
 | Mount | Holds | Access |
 |---|---|---|
 | `/data` | The capture tree: `<source>/<collection>/dt=YYYY-MM-DD/` payloads and sidecars | Read-write, append-only by design |
-| `/state` | WearStream's own state: run log, schedule and backfill progress, check baselines and results, supervisor heartbeat | Read-write |
+| `/state` | WearStream's own state: run log, schedule and backfill progress, check baselines and results, supervisor heartbeat | Read-write, on a local filesystem (WearStream relies on file locks) |
 | `/secrets` | Vendor tokens (Whoop token file, Garmin token store), plus the static credentials supplied as secret files | Read-write for tokens, mode 0700 |
 
 Tokens live apart from `/state` so that state can be backed up, shared in a bug report or
@@ -186,22 +186,27 @@ cascades to every source that relies on it.
 - **The schedule is part of the product.** Each source declares its jobs, cadences and
   trailing windows with defaults proven in production, and the operator can override them
   through configuration within guardrails. No tick lands on minute 0, where host cron jobs
-  and other services crowd. A tick that arrives while the previous run of the same source is
-  still running is skipped, not queued. On start, the supervisor runs any job whose last
-  successful run is older than its cadence.
-- **Backfill fills missing days and yields to the schedule.** On first start, and after any
-  restart, the supervisor works back to the configured start date, capturing only days that
-  have no capture yet, one day at a time, under the same source lock as scheduled ticks and
-  only when no scheduled run of that source is due. Progress is persisted, so a restart
+  and other services crowd. A tick that arrives while the same job still has scheduled work
+  queued or running is skipped, not queued. On start, the supervisor runs any job whose last
+  completed tick is older than its cadence.
+- **Backfill fills missing days and yields to the schedule.** On first start, after any
+  restart and daily, the supervisor works back from the start of the trailing window to the
+  backfill start, capturing only days that have no capture yet or whose last run did not
+  succeed, one day at a time, under the same source lock as scheduled ticks and only when the
+  source has nothing else queued. The backfill start is the operator's configured date, or by
+  default the earliest day already in `/data`, so adopting an existing tree fills the gap since
+  its last capture without re-pulling its history. Progress is persisted, so a restart
   resumes. Re-capturing days that already have data is the trailing window's job, not
-  backfill's, which keeps adopting an existing capture tree from re-pulling its history.
+  backfill's.
 - **Partitions are UTC fetch slices.** A capture's `dt=` folder is the UTC day of the fetch
   window `[day 00:00Z, next day 00:00Z)`, never a local or semantic day. Local-day meaning
   (which night a sleep belongs to) is applied by readers over the payload's own timestamps.
 - **The capture tree is the contract.** Its layout and sidecar format match grecohome-dagster
   bronze byte for byte, and nothing in WearStream reads its own captures back to decide what
-  to fetch, except backfill's "does this day have a capture" and skip-identical's "is this
-  byte-identical to the newest capture". State that WearStream needs lives in `/state`, so
+  to fetch, except backfill's "does this day have a capture" and "what is the earliest day
+  with a capture", and skip-identical's "is this byte-identical to the newest capture".
+  Checks read the tree to report on it, never to decide what to fetch. State that WearStream
+  needs lives in `/state`, so
   deleting `/state` loses progress and baselines but never data.
 - **State is plain files.** `/state` holds JSON documents written atomically (write a
   temporary file, fsync, rename) and an append-only JSON Lines run log. No SQLite and no

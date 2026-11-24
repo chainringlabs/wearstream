@@ -68,14 +68,15 @@ functions of those names in this component.
 
 ## Self-test
 
-- [ ] **CAPTURE-TEST-001**: When `self_test` runs against a data root, the system shall create a dot-named file in the root, fsync it, hard-link it to a second dot-named name, fsync the root folder and remove both files, and report success only if every step succeeded.
-- [ ] **CAPTURE-TEST-002**: If a step of `self_test` fails, then the system shall report which step failed and the operating-system error, and attempt to remove any file the self-test created.
+- [ ] **CAPTURE-TEST-001**: When `self_test` runs against a data root, and optionally a folder inside that root, the system shall, in the root and in the given folder, create a dot-named file, fsync it, hard-link it to a second dot-named name, fsync the folder and remove both files, and report success only if every step succeeded in every folder tested.
+- [ ] **CAPTURE-TEST-002**: If a step of `self_test` fails, then the system shall report which step failed, in which folder, and the operating-system error, and attempt to remove any file the self-test created.
 
 ## Repair
 
 - [ ] **CAPTURE-REPAIR-001**: When `repair` runs for a source and a set of partition days, the system shall visit the `dt={day}` folder of every collection folder under that source for each given day, delete the `.tmp_`-prefixed files in it, and log `capture_tmp_removed` with the count for each folder where it deleted any.
 - [ ] **CAPTURE-REPAIR-002**: When `repair` finds a lone payload or a lone sidecar in a folder it visits, the system shall leave the file in place and log `capture_orphan_found` with its path.
 - [ ] **CAPTURE-REPAIR-003**: The `repair` function shall delete no file other than `.tmp_`-prefixed temporary files, and shall visit no folder outside the given source's collections and the given days.
+- [ ] **CAPTURE-REPAIR-004**: If an error occurs while `repair` lists or cleans a folder, then the system shall log `capture_repair_failed` with the error, continue with the remaining folders, and not raise.
 
 ## Logging
 
