@@ -52,8 +52,8 @@ container with the same mounts. It refuses to start unless `/state/locks` exists
 4. compares the signed-in profile id with `account.json`: a different account is refused unless
    the operator passed `--new-account`;
 5. takes the Garmin source lock (`/state/locks/garmin.lock`) with a blocking `flock` that gives up
-   after 20 minutes (longer than a `daily` unit can hold it), saying it is waiting for a running
-   Garmin unit;
+   after the longest effective time limit of Garmin's capture jobs plus 2 minutes (17 minutes by
+   default; longer than a unit can hold the lock), saying it is waiting for a running Garmin unit;
 6. writes the session (the library's `dumps()`) to the token file atomically (temporary file
    created `0600`, fsync, rename, fsync the folder), and writes `account.json` the same way;
 7. releases the lock and prints the account's display name and profile id, never a token or

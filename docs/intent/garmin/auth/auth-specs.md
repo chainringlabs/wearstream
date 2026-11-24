@@ -9,6 +9,7 @@ the supervisor's `/state/locks/garmin.lock`; "a unit" is a Garmin `daily` or `re
 
 - [ ] **GARMIN-AUTH-STORE-001**: The Garmin source shall read the optional email and password from `/secrets/garmin/email` and `/secrets/garmin/password`, ignoring one trailing newline.
 - [ ] **GARMIN-AUTH-STORE-002**: When any WearStream process (units, `wearstream auth garmin`, the daemon, checks) uses the `garminconnect` library, it shall first remove `GARMINTOKENS` from its own environment, logging `garmin_tokens_env_ignored` at WARNING if it was set.
+- [ ] **GARMIN-AUTH-STORE-004**: Where `WEARSTREAM_GARMIN_CHINA` is `true`, every Garmin client WearStream builds (units, `wearstream auth garmin`) shall use Garmin's China site.
 - [ ] **GARMIN-AUTH-STORE-003**: The Garmin source shall locate the token file with the library's `token_file_path` for `/secrets/garmin`.
 
 ## Bootstrap (`wearstream auth garmin`)
@@ -19,7 +20,7 @@ the supervisor's `/state/locks/garmin.lock`; "a unit" is a Garmin `daily` or `re
 - [ ] **GARMIN-AUTH-BOOT-004**: When Garmin asks `wearstream auth garmin` for an MFA code, the command shall prompt for it and, if no code is entered within 5 minutes, exit with code 2 without writing anything.
 - [ ] **GARMIN-AUTH-BOOT-005**: If the session from `wearstream auth garmin`'s sign-in lacks a non-empty `di_token` or `di_refresh_token`, then the command shall exit with code 1 without writing anything.
 - [ ] **GARMIN-AUTH-BOOT-006**: If the signed-in profile id differs from the one in `/secrets/garmin/account.json` and the operator did not pass `--new-account`, then `wearstream auth garmin` shall exit with code 2, naming both profile ids, without writing anything.
-- [ ] **GARMIN-AUTH-BOOT-007**: When `wearstream auth garmin`'s sign-in and checks succeed, the command shall take the source lock with a blocking `flock` that gives up after 20 minutes (exiting with code 5 if it does), write the session (`dumps()`) to the token file and the profile id to `/secrets/garmin/account.json`, each atomically through a temporary file created with mode `0600`, release the lock, print the display name and profile id, and exit with code 0.
+- [ ] **GARMIN-AUTH-BOOT-007**: When `wearstream auth garmin`'s sign-in and checks succeed, the command shall take the source lock with a blocking `flock` that gives up after the longest effective time limit of Garmin's capture jobs plus 2 minutes (exiting with code 5 if it does), write the session (`dumps()`) to the token file and the profile id to `/secrets/garmin/account.json`, each atomically through a temporary file created with mode `0600`, release the lock, print the display name and profile id, and exit with code 0.
 - [ ] **GARMIN-AUTH-BOOT-008**: While `wearstream auth garmin` waits for the operator (credentials or an MFA code), it shall not hold the source lock.
 - [ ] **GARMIN-AUTH-BOOT-009**: If `wearstream auth garmin`'s sign-in fails for a reason other than those in GARMIN-AUTH-BOOT-004 to BOOT-006, then the command shall exit with code 1 without writing anything.
 

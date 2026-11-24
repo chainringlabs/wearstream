@@ -7,9 +7,9 @@ entries; "selected" means turned on by the operator's selection and exclusion li
 
 ## Jobs
 
-- [ ] **GARMIN-CAPTURE-JOB-001**: The Garmin source shall declare a `partitioned` job `daily` with schedule `30 5 * * *`, a window of 14 days ending the day before the fire date, a time limit of 15 minutes, a backfill pause of 60 seconds, and as its collections every selected collection a `daily` unit writes.
-- [ ] **GARMIN-CAPTURE-JOB-002**: The Garmin source shall declare a `snapshot` job `reference` with schedule `30 5 * * *` and a time limit of 10 minutes.
-- [ ] **GARMIN-CAPTURE-JOB-003**: The Garmin source shall declare a `checks` job `checks` with schedule `7 3-21/6 * * *` and a time limit of 10 minutes.
+- [ ] **GARMIN-CAPTURE-JOB-001**: The Garmin source shall declare a `partitioned` job `daily` with schedule `30 5 * * *`, a window of 14 days ending the day before the fire date, a time limit of 15 minutes (minimum 5), a backfill pause of 60 seconds (at least 30 when overridden), and as its collections every selected collection a `daily` unit writes.
+- [ ] **GARMIN-CAPTURE-JOB-002**: The Garmin source shall declare a `snapshot` job `reference` with schedule `30 5 * * *` and a time limit of 10 minutes (minimum 5).
+- [ ] **GARMIN-CAPTURE-JOB-003**: The Garmin source shall declare a `checks` job `checks` with schedule `7 3-21/6 * * *` and a time limit of 10 minutes (minimum 3).
 
 ## Catalog and selection
 

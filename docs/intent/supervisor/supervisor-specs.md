@@ -10,8 +10,8 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 ## Job declarations and guardrails
 
 - [ ] **SUPERVISOR-JOB-001**: When the supervisor starts, it shall load each enabled source's job declarations (name, kind, schedule, window days, include-today, collections, time limit, backfill pause) and apply the operator's configured overrides to them.
-- [ ] **SUPERVISOR-JOB-002**: If, after overrides, a job's schedule does not have one literal minute from 1 to 59 in its minute field, then the supervisor shall exit at startup with an error naming the setting.
-- [ ] **SUPERVISOR-JOB-003**: If, after overrides, a `partitioned` job's window is less than 1 day, any job's time limit is outside 1 minute to 6 hours, or a source's queue cannot fit its work, then the supervisor shall exit at startup with an error naming the setting. A source's queue fits when the sum of the worst cases of the source's non-checks jobs (`window_days × time_limit` for a `partitioned` job, `time_limit` otherwise), plus the longest time limit among its `partitioned` jobs, is no longer than the shortest interval (smallest gap between consecutive fire times) among those jobs, and each checks job's time limit is no longer than its own interval.
+- [ ] **SUPERVISOR-JOB-002**: If, after overrides, a job's schedule does not have one literal minute from 1 to 59 in its minute field, then configuration validation shall report the setting as invalid (OPERATOR-VAL-002).
+- [ ] **SUPERVISOR-JOB-003**: If, after overrides, a `partitioned` job's window is less than 1 day, any job's time limit is below the job's declared `min_time_limit` or above 6 hours, any job's longest gap between consecutive fire times is longer than 24 hours, or a source's queue cannot fit its work, then configuration validation shall report the setting as invalid (OPERATOR-VAL-002). A source's queue fits when the sum of the worst cases of the source's non-checks jobs (`window_days × time_limit` for a `partitioned` job, `time_limit` otherwise), plus the longest time limit among its `partitioned` jobs, is no longer than the shortest interval (smallest gap between consecutive fire times) among those jobs, and each checks job's time limit is no longer than its own interval.
 
 ## Schedules
 
@@ -50,7 +50,7 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 ## Outcomes
 
 - [ ] **SUPERVISOR-OUTCOME-001**: While a child runs, the supervisor shall read its result pipe concurrently, keep at most 64 KiB, and stop reading when the child exits.
-- [ ] **SUPERVISOR-OUTCOME-002**: When a unit ends, the supervisor shall classify it as `killed` if the supervisor signalled it for its time limit (including when a shutdown arrives during that limit's grace period); as `interrupted` if the supervisor signalled it for shutdown; and otherwise by exit code: 0 `success`, 1 `failed`, 3 `environment`, 4 `needs_auth`, 5 `busy`, 6 `rate_limited`, 75 `interrupted`, and any other exit code, or death by a signal the supervisor did not send, `crashed`.
+- [ ] **SUPERVISOR-OUTCOME-002**: When a unit ends, the supervisor shall classify it as `killed` if the supervisor signalled it for its time limit (including when a shutdown arrives during that limit's grace period); as `interrupted` if the supervisor signalled it for shutdown; and otherwise by exit code: 0 `success`, 1 `failed`, 3 `environment`, 4 `needs_auth`, 5 `busy`, 6 `rate_limited`, 75 `interrupted`, and any other exit code, or death by a signal the supervisor did not send, `crashed` (an exit 2, a usage error the daemon should never cause, is logged with reason `usage`).
 - [ ] **SUPERVISOR-OUTCOME-003**: If a finished unit's result is missing or is not a valid JSON result, then the supervisor shall record its counts as unknown and classify its outcome by SUPERVISOR-OUTCOME-002 unchanged.
 
 ## After a unit
@@ -73,7 +73,7 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 
 - [ ] **SUPERVISOR-RATE-001**: When a source unit ends `rate_limited`, the supervisor shall empty that source's queue and record in `/state/sources/<source>.json` a cooldown ending after the unit result's `retry_after_seconds`, or 60 minutes when it has none, capped at 24 hours, and log `source_rate_limited` at WARNING with the end time.
 - [ ] **SUPERVISOR-RATE-002**: While a source's cooldown has not ended, the supervisor shall start no source unit of that source, skip its ticks with `tick_skipped`, and enqueue no backfill unit for it.
-- [ ] **SUPERVISOR-RATE-003**: When a source unit ends `rate_limited` for the third time with no source unit of that source ending `success` in between, the supervisor shall log `source_rate_limited_repeatedly` at ERROR with an action to check the vendor's status and reduce the source's selection or raise its pacing.
+- [ ] **SUPERVISOR-RATE-003**: When a source unit ends `rate_limited` for the third time with no source unit of that source ending `success` in between, the supervisor shall flag the source as repeatedly rate-limited in `/state/sources/<source>.json` until a source unit of it succeeds, and log `source_rate_limited_repeatedly` at ERROR with an action to check the vendor's status and reduce the source's selection or raise its pacing.
 - [ ] **SUPERVISOR-RATE-004**: When a source's cooldown ends, the supervisor shall run catch-up for that source's jobs.
 
 ## Capture pause
@@ -87,7 +87,7 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 ## Failing jobs
 
 - [ ] **SUPERVISOR-FAIL-001**: When all units enqueued by a tick of a job other than a `checks` job (not counting retries) have ended, the supervisor shall count the tick as failed if any ended `failed`, `killed` or `crashed`, as succeeded if all ended `success`, and otherwise (only `busy`, `interrupted`, `needs_auth`, `environment` or `rate_limited` outcomes besides successes) leave the job's consecutive-failure count unchanged.
-- [ ] **SUPERVISOR-FAIL-002**: When a job's consecutive failed ticks reach the configured threshold (3 by default), the supervisor shall log `job_failing` at ERROR with an action pointing at the job's recent `run_failed` lines.
+- [ ] **SUPERVISOR-FAIL-002**: When a job's consecutive failed ticks reach the configured threshold (3 by default), the supervisor shall flag the job as failing in `/state/jobs/<source>.<job>.json` and log `job_failing` at ERROR with an action pointing at the job's recent `run_failed` lines; when the job recovers, it shall clear the flag.
 - [ ] **SUPERVISOR-FAIL-003**: When a tick of a job that had reached the failure threshold succeeds, the supervisor shall log `job_recovered` and reset the count to zero.
 
 ## Catch-up
@@ -108,10 +108,12 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 - [ ] **SUPERVISOR-BACKFILL-010**: When a backfill pass reaches a known-empty day recorded at least 30 days earlier that has not been re-checked, the supervisor shall treat it as missing once; if that unit also records it as known-empty, the supervisor shall keep it known-empty without further re-checks.
 - [ ] **SUPERVISOR-BACKFILL-011**: When a backfill unit ends other than `success`, `interrupted`, `busy` or `rate_limited`, the supervisor shall count one failed attempt for its day, and when a day reaches three failed attempts the supervisor shall log `backfill_day_abandoned` once.
 - [ ] **SUPERVISOR-BACKFILL-012**: When the backfill start moves later than a pass's current position, the supervisor shall end that pass.
+- [ ] **SUPERVISOR-BACKFILL-013**: During a backfill pass, the supervisor shall keep in `/state/backfill/<source>.<job>.json` the pass's counts of days found missing, filled, recorded known-empty and given up.
 
 ## Hand-started runs
 
 - [ ] **SUPERVISOR-MANUAL-009**: When an operator starts `wearstream run <source> checks` by hand, it shall run with trigger `manual`, take the source's checks lock (exiting with code 5 if it is held), run the checks, record its start and finish in the run log, and skip SUPERVISOR-MANUAL-001 to MANUAL-003, MANUAL-007 and MANUAL-008; it shall not be recorded in `inflight.json` or repaired.
+- [ ] **SUPERVISOR-MANUAL-010**: When the supervisor finds in the run log the `finish` line of a hand-started run it has not reported, it shall log `manual_run_finished` at INFO with the run's source, job, day and outcome.
 - [ ] **SUPERVISOR-MANUAL-001**: When an operator starts `wearstream run` by hand for a job other than `checks`, it shall run with trigger `manual`, take the source lock before recording itself, then record itself in `inflight.json` with its pid and pid namespace and in the run log, and when it ends record its finish, update the job's `needs_refill` set by SUPERVISOR-AFTER-006, and remove its `inflight.json` entry.
 - [ ] **SUPERVISOR-MANUAL-008**: If a hand-started `wearstream run` finds its source recorded as `waiting_for_auth` in `/state/sources/<source>.json`, then it shall exit with code 4 and a message saying to run `wearstream auth <source>`, without running the job; if it finds the source in a rate-limit cooldown, it shall exit with code 6 and the cooldown's end time, without running the job.
 - [ ] **SUPERVISOR-MANUAL-006**: If an operator starts `wearstream run` by hand for a `partitioned` job without `--day`, or with `--day` for any other job, then it shall exit with code 2 and a usage message without running the job.
@@ -134,14 +136,14 @@ A **source unit** is a unit of any job kind except `checks`; a **checks unit** i
 ## Lifecycle
 
 - [ ] **SUPERVISOR-LIFE-001**: If another process holds `/state/daemon.lock`, then a starting supervisor shall exit with an error saying another daemon is using `/state`.
-- [ ] **SUPERVISOR-LIFE-002**: When the supervisor starts, it shall, in order: take `daemon.lock`; read the previous `heartbeat.json` and then write it with phase `starting`; validate configuration; confirm `/state` is writable (exiting if not); run the capture `self_test` on `/data` (starting with capture paused if it fails); set phase `running` and enter the schedule loop; run catch-up; and start backfill passes.
+- [ ] **SUPERVISOR-LIFE-002**: When the supervisor starts, it shall, in order: validate configuration, exiting with code 2 before touching `/state` if it is invalid; take `daemon.lock`; read the previous `heartbeat.json` and then write it with phase `starting`; confirm `/state` is writable (exiting if not); run the capture `self_test` on `/data` (starting with capture paused if it fails); set phase `running` and enter the schedule loop; run catch-up; and start backfill passes.
 - [ ] **SUPERVISOR-LIFE-003**: When the schedule loop first runs after startup, for each source with `daemon` entries in `inflight.json` (or, when it is unparseable, by SUPERVISOR-STATE-006), the supervisor shall record each entry as `interrupted`, repair and re-queue it by SUPERVISOR-AFTER-001 and SUPERVISOR-AFTER-004, and log `inflight_recovered`, before any other unit of that source starts and without holding any other source's queue; it shall leave `manual` entries to SUPERVISOR-MANUAL-005.
 - [ ] **SUPERVISOR-LIFE-004**: When the supervisor receives `SIGTERM` or `SIGINT`, it shall set phase `stopping`, start no further unit, send `SIGTERM` to every child's process group and to every live hand-started run recorded in `inflight.json` with the supervisor's own pid namespace, wait up to 45 seconds, send `SIGKILL` to any of its children still running, and exit with code 0, leaving its cut-off units in `inflight.json`.
 
 ## Health
 
-- [ ] **SUPERVISOR-HEALTH-001**: The supervisor's scheduling loop shall rewrite `heartbeat.json` on every pass, at least every 30 seconds, with the daemon pid, phase, update time, capture pause reason and next retry, and each source's status.
-- [ ] **SUPERVISOR-HEALTH-002**: When `wearstream healthcheck` runs, it shall read only `/state` and exit non-zero if `heartbeat.json` is missing, more than 120 seconds old, or records a capture pause, and exit zero otherwise, including while a source is in `waiting_for_auth`.
+- [ ] **SUPERVISOR-HEALTH-001**: The supervisor's scheduling loop shall rewrite `heartbeat.json` on every pass, at least every 30 seconds, with the daemon pid, version, phase, update time, capture pause reason and next retry, the enabled sources and each one's status.
+- [ ] **SUPERVISOR-HEALTH-002**: When `wearstream healthcheck` runs, it shall read only `/state` and exit 1 if `heartbeat.json` is missing, unreadable, more than 120 seconds old, or records a capture pause, or the configuration is invalid, and exit 0 otherwise, including while a source is in `waiting_for_auth`.
 
 ## Logging
 
