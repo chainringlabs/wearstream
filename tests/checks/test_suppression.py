@@ -14,10 +14,20 @@ SOURCE_DOC = "sources/whoop.json"
 
 
 # @spec CHECKS-SUPP-001
-def test_an_active_source_is_not_suppressed(state: Path) -> None:
+def test_an_active_source_that_has_captured_is_not_suppressed(state: Path) -> None:
     heartbeat(state)
-    write_state(state, SOURCE_DOC, {"state": "active"})
+    write_state(state, SOURCE_DOC, {"state": "active", "last_source_success_at": iso(hours_ago(1))})
     assert suppression_reason(state, "whoop", NOW) is None
+
+
+# @spec CHECKS-SUPP-001
+@pytest.mark.parametrize("doc", [None, {"state": "active"}])
+def test_a_source_with_no_successful_unit_yet_is_suppressed(state: Path, doc: dict | None) -> None:
+    """A fresh install: the first checks run starts alongside the first capture units."""
+    heartbeat(state)
+    if doc is not None:
+        write_state(state, SOURCE_DOC, doc)
+    assert suppression_reason(state, "whoop", NOW) == "first_capture_pending"
 
 
 # @spec CHECKS-SUPP-001

@@ -77,6 +77,17 @@ def test_pull_request_image_build_and_smoke_test(workflows: dict) -> None:
     runs = _runs(image)
     assert "wearstream:test version" in runs  # the image's entry point is `wearstream`
     assert "needs.python.outputs.version" in str(image)
+    for hardening in ("--read-only", "--tmpfs /tmp", "--cap-drop ALL", "no-new-privileges"):
+        assert hardening in runs, hardening
+    assert "WEARSTREAM_SOURCES=whoop,garmin" in runs
+    assert "chown 65532:65532" in runs  # three empty mounts owned by the image's uid
+    for mount in ("/data", "/state", "/secrets"):
+        assert f":{mount}" in runs, mount
+    assert "healthcheck" in runs and "no readable heartbeat" in runs  # before the daemon starts
+    assert "daemon_started" in runs
+    assert "waiting_for_auth" in runs and "whoop" in runs and "garmin" in runs
+    assert "docker stop -t 60" in runs
+    assert re.search(r"State\.ExitCode", runs)
 
 
 # @spec DELIVERY-CI-007

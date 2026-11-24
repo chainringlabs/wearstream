@@ -1,0 +1,38 @@
+# Reference Ansible task for WearStream (docs/deploy/wearstream-task.yml), for the
+# community.docker collection. Create the three host folders first, owned by the container's uid
+# (README: Before you start), and template .env.example into wearstream.env.
+#
+# `mounts:` with `type: bind` is used on purpose: the short `volumes:` syntax creates a missing
+# host folder, which would hide a typo by writing captures somewhere unexpected.
+#
+# @spec DELIVERY-DEPLOY-002, DELIVERY-DEPLOY-003
+- name: Run WearStream
+  community.docker.docker_container:
+    name: wearstream
+    image: ghcr.io/chainringlabs/wearstream:0.1.0
+    restart_policy: unless-stopped
+    env_file: /srv/wearstream/wearstream.env
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opts:
+      - no-new-privileges:true
+    init: false
+    tty: false
+    stop_timeout: 60
+    log_driver: json-file
+    log_options:
+      max-size: 10m
+      max-file: "5"
+    mounts:
+      - type: bind
+        source: /srv/wearstream/data
+        target: /data
+      - type: bind
+        source: /srv/wearstream/state
+        target: /state
+      - type: bind
+        source: /srv/wearstream/secrets
+        target: /secrets

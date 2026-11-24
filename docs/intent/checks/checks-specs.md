@@ -56,7 +56,7 @@ helpers define a capture); "a source's own checks" are the credential-health che
 
 ## Suppression
 
-- [x] **CHECKS-SUPP-001**: While `/state/heartbeat.json` was updated within the last 120 seconds and either the source is waiting for a credential or in a rate-limit cooldown (per `/state/sources/<source>.json`), capture is paused (per the heartbeat), or the source's `last_source_success_at` is not later than its `resumed_at`, its freshness checks and the `gap_to_now` term of its completeness checks shall report `suppressed` with the reason instead of failing.
+- [x] **CHECKS-SUPP-001**: While `/state/heartbeat.json` was updated within the last 120 seconds and either the source is waiting for a credential or in a rate-limit cooldown (per `/state/sources/<source>.json`), capture is paused (per the heartbeat), the source's `last_source_success_at` is not later than its `resumed_at`, or the source has no `last_source_success_at` (no source unit of it has succeeded yet), its freshness checks and the `gap_to_now` term of its completeness checks shall report `suppressed` with the reason instead of failing.
 - [x] **CHECKS-SUPP-002**: If a collection's newest capture is older than three times `cadence_hours` plus `grace_hours`, then its freshness check shall not be suppressed.
 - [x] **CHECKS-SUPP-003**: While CHECKS-SUPP-001 applies, schema-drift checks, content-health checks and completeness gaps between event dates shall be reported as usual.
 - [x] **CHECKS-SUPP-004**: A source's own check may report `suppressed` with a reason under the conditions of CHECKS-SUPP-001, and shall be reported like a suppressed collection check.

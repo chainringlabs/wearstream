@@ -169,7 +169,11 @@ repeat what the supervisor is already saying. So, for a source that is **waiting
 in a rate-limit cooldown, or whose capture is paused**, and until a source unit of that source
 succeeds after it resumes (its `last_source_success_at` is later than its `resumed_at`, both kept by
 the supervisor in `/state/sources/<source>.json`), those report `suppressed` with the reason instead
-of failing. All of this is read only while `/state/heartbeat.json` is no more than 120 seconds old;
+of failing. The same holds for a source none of whose units has succeeded yet (no
+`last_source_success_at`): on a fresh install the first checks run starts alongside the first
+capture units, and a never-captured collection would otherwise fail everywhere at once. A source
+that never succeeds is still reported, by the supervisor's waiting, cooldown and `job_failing`
+events. All of this is read only while `/state/heartbeat.json` is no more than 120 seconds old;
 with no running daemon, nothing is suppressed. Gaps inside the window,
 schema drift and content health are still reported: they describe what was captured.
 
@@ -241,7 +245,7 @@ before.
 | Freshness signal | The newest capture's fetch time | The supervisor's last successful run | A unit can succeed while capturing nothing new; captures are what the person keeps. |
 | Severities | Freshness, new keys and corruption are errors; gaps, empties and missing keys are warnings | Everything an error | Gaps, empties and absent optional sections are often legitimate. |
 | Logging repeats | On change, a daily reminder while failing, and on recovery | Every run | A log alert would otherwise fire every hour for one problem, and new problems would be buried. |
-| Suppression | Freshness and `gap_to_now` only, until the first successful unit after resume, never beyond three tolerances | Suppress every check; never suppress | The supervisor already reports waits and cooldowns; gaps already captured, drift and corruption are not explained by them, and a long-dead source must not stay hidden. |
+| Suppression | Freshness and `gap_to_now` only, until the first successful unit after resume (or ever, on a fresh install), never beyond three tolerances | Suppress every check; never suppress | The supervisor already reports waits and cooldowns; gaps already captured, drift and corruption are not explained by them, and a long-dead source must not stay hidden. |
 | Status across suppression | Kept beneath a separate suppression flag | Suppressed replaces the status | Replacing it loses the recovery event and re-fires every failure when a cooldown ends. |
 | Schema baseline | The union of accepted keys; new keys error, missing keys warn | The exact signature of one payload | Optional sections come and go; an exact signature flags every absence and every return. |
 | Lists and records | The union of element or record keys | The first element's keys | The first element of a list isn't representative, and payloads are often lists. |

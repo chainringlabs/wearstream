@@ -1,0 +1,61 @@
+# Reference Compose deployment for WearStream (docs/deploy/compose.yaml).
+#
+# 1. Create the three host folders below and give them to the container's uid (README: Before you
+#    start). Compose is told not to create them, so a typo fails instead of writing elsewhere.
+# 2. Copy .env.example to wearstream.env next to this file, and edit it.
+# 3. docker compose up -d, then authorize each source (README: Authorize).
+#
+# @spec DELIVERY-DEPLOY-002, DELIVERY-DEPLOY-003
+services:
+  wearstream:
+    image: ghcr.io/chainringlabs/wearstream:0.1.0   # pin an exact release; upgrade by editing it
+    container_name: wearstream                      # so `docker exec -it wearstream ...` works
+    restart: unless-stopped
+    env_file: wearstream.env
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    init: false                 # the image's entry point is already tini
+    stop_grace_period: 60s      # lets a credential exchange finish before a kill
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    volumes:
+      - type: bind
+        source: /srv/wearstream/data        # the capture tree: a filesystem with hard links
+        target: /data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /srv/wearstream/state       # WearStream's state: a local filesystem
+        target: /state
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /srv/wearstream/secrets     # credentials and tokens; writable by the container
+        target: /secrets
+        bind:
+          create_host_path: false
+    # No ports, no TTY: WearStream serves nothing. The image's own health check is kept.
+    #
+    # Optional: Compose secrets can supply the static credential files instead of placing them in
+    # /srv/wearstream/secrets yourself. Target them inside the mounted folder; the host file must
+    # be readable by the container's uid, and Docker may leave an empty placeholder file in the
+    # mounted folder after `docker compose down`.
+    # secrets:
+    #   - source: whoop_client_id
+    #     target: /secrets/whoop/client_id
+    #   - source: whoop_client_secret
+    #     target: /secrets/whoop/client_secret
+
+# secrets:
+#   whoop_client_id:
+#     file: ./whoop_client_id
+#   whoop_client_secret:
+#     file: ./whoop_client_secret
