@@ -21,7 +21,7 @@ is the interface. Design: `docs/high-level-design.md`.
 
 ## Commands
 
-*(The code does not exist yet; these are the planned commands.)*
+*(The scaffold exists: the checks below and `wearstream version` run today; the other `wearstream` commands arrive with the components that own them.)*
 
 - `uv sync --frozen` — install from the lock
 - `uv lock --check` — the lock matches `pyproject.toml`

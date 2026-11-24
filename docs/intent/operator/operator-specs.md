@@ -44,7 +44,7 @@ Design: [operator-design.md](operator-design.md). Prefix `OPERATOR`. Facets: `PA
 
 - [ ] **OPERATOR-CMD-001**: The `wearstream` entry point shall provide `daemon`, `run`, `auth`, `accept-schema`, `status`, `config`, `healthcheck` and `version`, each accepting `--help`.
 - [ ] **OPERATOR-CMD-002**: If an interactive command (`auth`) finds no terminal on its input, then it shall exit with code 2 and a message to run it with `docker exec -it` or `docker run -it`.
-- [ ] **OPERATOR-CMD-003**: `wearstream version` shall print the installed version and exit with code 0.
+- [x] **OPERATOR-CMD-003**: `wearstream version` shall print the installed version and exit with code 0.
 
 ## `wearstream status`
 

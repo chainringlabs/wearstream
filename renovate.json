@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>chainringlabs/renovate-config"],
+  "packageRules": [
+    {
+      "description": "Keep the Chainguard builder (python:latest-dev) and runtime (python:latest) in lockstep, so the venv copied from the builder always matches the runtime Python. A digest that changes the Python minor version fails the image smoke test and needs a manual requires-python bump.",
+      "matchDepNames": ["cgr.dev/chainguard/python"],
+      "groupName": "chainguard python base images",
+      "groupSlug": "chainguard-python-base"
+    },
+    {
+      "description": "garminconnect must follow Garmin's sign-in changes within days, so it skips the cooldown; it handles the Garmin password, so a person merges it, in a PR of its own.",
+      "matchPackageNames": ["garminconnect"],
+      "minimumReleaseAge": null,
+      "automerge": false,
+      "groupName": "garminconnect",
+      "groupSlug": "garminconnect",
+      "schedule": ["at any time"]
+    }
+  ]
+}
