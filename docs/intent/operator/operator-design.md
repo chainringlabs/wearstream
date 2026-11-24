@@ -119,6 +119,7 @@ operator.
 | `WEARSTREAM_LOG_FORMAT` | `console` | `console` (human-readable) or `json` (JSON Lines) |
 | `WEARSTREAM_LOG_LEVEL` | `INFO` | `INFO` or `DEBUG`; higher levels are not offered, because recovery and resume events at INFO are what close log-based alerts |
 | `WEARSTREAM_FAILING_TICKS` | `3` | Consecutive failed ticks before `job_failing`; 1 to 100 |
+| `WEARSTREAM_UMASK` | `022` | The file-creation mask every process sets at startup, as three or four octal digits from `000` to `077` (the owner's own permissions are never masked); `077` keeps captures readable only by the container's uid |
 
 ### Which settings each command needs
 

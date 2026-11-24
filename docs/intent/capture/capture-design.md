@@ -95,7 +95,8 @@ endpoint** what counts as data; the writer doesn't infer it.
   failure is reported with the failing step, the folder and the operating-system error.
 - **Permissions follow the process umask.** Folders and files are created with the default
   modes filtered by the process umask (`0755` and `0644` under the common `022`). The operator
-  controls privacy through the container user and umask; the writer does not override it.
+  controls privacy through the container user and `WEARSTREAM_UMASK`, which every process applies
+  at startup; the writer does not override it.
 - **The root is passed in.** The caller supplies the data root (`/data` in the container);
   nothing below the writer hardcodes it, which keeps another storage backend possible.
 
