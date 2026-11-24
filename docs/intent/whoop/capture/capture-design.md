@@ -16,7 +16,7 @@ records after the fact, and two current-only snapshots. It obtains its bearer to
 
 | Job | Kind | Schedule (UTC) | Window | Collections | Time limit | Backfill pause |
 |---|---|---|---|---|---|---|
-| `range` | partitioned | `17 * * * *` | 8 days, including the fire date | `sleep`, `recovery`, `workout`, `cycle` | 5 minutes | 60 seconds |
+| `range` | partitioned | `17 * * * *` | 8 days, including the fire date | `sleep`, `recovery`, `workout`, `cycle` | 5 minutes (at least 3) | 60 seconds (at least 30) |
 | `snapshots` | snapshot | `17 * * * *` | — | `profile`, `body_measurement` | 5 minutes | — |
 | `checks` | checks | `37 * * * *` | — | — | 10 minutes | — |
 
@@ -29,6 +29,10 @@ day. The hourly ticks use about 820 requests a day (8 days × 4 collections, plu
 every hour). A backfill unit makes about 4 requests, so one unit a minute keeps backfill near
 5,800 a day and the total under the daily limit, with room for retries. Two years of history
 fills in about 12 hours.
+
+`range` and `snapshots` always share one schedule (`WEARSTREAM_WHOOP_SCHEDULE`), and its minute may
+not fall from 55 to 5: separate minutes would refresh the token twice an hour, and the top of the
+hour is where grants were lost.
 
 **Why minute 17.** The access token lives about an hour, the same as the cadence, so every
 tick refreshes the token right at its expiry. At minute 0 that refresh lands in the

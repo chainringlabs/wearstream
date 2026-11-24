@@ -33,6 +33,7 @@ declarations.
 | `window_days`, `include_today` | `partitioned` only: how many trailing UTC days each tick covers, and whether the window ends on the fire date or the day before |
 | `collections` | `partitioned` only: the collections the job writes, used by backfill to decide whether a day has data |
 | `time_limit` | The longest one unit may run |
+| `min_time_limit` | The smallest time limit an override may set: above the source's deadline margin, so a unit always has time to work |
 | `backfill_pause` | `partitioned` only: the pause between consecutive backfill units of the job |
 
 A **unit** is one child process: `(source, job)` for `snapshot` and `checks` jobs, and
@@ -58,12 +59,15 @@ source's design. For orientation:
 A schedule is a five-field cron expression evaluated in UTC. Its **minute field must be one
 literal minute from 1 to 59**: never `0`, `*`, a list, a range or a step. Host cron jobs and
 other services crowd minute 0, and a vendor's token endpoint is most congested then. A job's
-**interval** is the shortest gap between consecutive fire times of its schedule.
+**interval** is the shortest gap between consecutive fire times of its schedule, and its **longest
+gap** the longest such gap (they differ for schedules like `7 3-21/6 * * *`).
 
 An operator may override any job's schedule, window, time limit or backfill pause through
-configuration. These guardrails are checked at startup, and a violation stops the daemon with an
-error naming the setting: the minute rule; a window of at least 1 day; a time limit from 1
-minute to 6 hours; and a worst case that fits the source's queue. A job's worst case is
+configuration. These guardrails are part of configuration validation (the operator-interface
+design), so every violation is reported together before the daemon touches `/state`: the minute
+rule; a window of at least 1 day; a time limit from the job's declared minimum to 6 hours; every
+job's longest gap at most 24 hours (freshness and credential tolerances assume at least daily
+runs); and a worst case that fits the source's queue. A job's worst case is
 `window_days × time_limit` for a `partitioned` job and `time_limit` otherwise. Because a
 source's jobs share one queue, the sum of the worst cases of all the source's non-checks jobs,
 plus the longest time limit among its `partitioned` jobs (one backfill unit in progress), must be
@@ -313,11 +317,11 @@ rename, fsync the folder). The run log is JSON Lines, appended one line per writ
 | Path | Contents |
 |---|---|
 | `daemon.lock` | Held (`flock`) by the running daemon; a second daemon on the same `/state` refuses to start |
-| `heartbeat.json` | Daemon pid, phase (`starting`, `running`, `stopping`), last update, capture pause reason and next retry, each source's status |
+| `heartbeat.json` | Daemon pid, version, phase (`starting`, `running`, `stopping`), last update, capture pause reason and next retry, the enabled sources and each one's status |
 | `inflight.json` | Units started and not yet finished and repaired: run id, source, job, day, trigger, start time, `daemon` or `manual` |
-| `jobs/<source>.<job>.json` | Last tick, last completed tick, consecutive failed ticks |
+| `jobs/<source>.<job>.json` | Last tick, last completed tick, consecutive failed ticks, and whether the job is currently flagged as failing (read by `wearstream status`) |
 | `sources/<source>.json` | `active` or `waiting_for_auth`, any rate-limit cooldown end and the count of consecutive rate limits, when the source last resumed (`resumed_at`: from a credential wait, a cooldown or a capture pause) and when a source unit of it last succeeded (`last_source_success_at`), since when, recorded credential fingerprint, first-run date, last reminder; read by checks and hand-started runs, where a missing document means `active` |
-| `backfill/<source>.<job>.json` | Pass position and pending-restart flag, `needs_refill` days, known-empty days with the date each was recorded, failed-attempt counts |
+| `backfill/<source>.<job>.json` | Pass position and pending-restart flag, `needs_refill` days, known-empty days with the date each was recorded, failed-attempt counts, and the current pass's counts of days found missing, filled, known-empty and given up (read by `wearstream status`) |
 | `runs/<YYYY-MM>.jsonl` | Run log: a `start` and a `finish` line per unit (trigger, day, outcome, exit code, duration, counts, error summary), and a `repaired` line after repair; the 13 most recent monthly files are kept |
 | `locks/` | Source and checks lock files, and `state.lock` |
 | `<source>/` | Documents a source keeps for itself (Garmin's last password sign-in), written under the same atomic-write and `state.lock` rules |
@@ -335,10 +339,11 @@ no `finish`. Every other document is rebuildable from `/data` or simply restarts
 ## Lifecycle
 
 **Startup**, in order:
-1. Take `daemon.lock`; if another daemon holds it, exit with an error.
-2. Read the previous `heartbeat.json` (its last update marks when the previous daemon stopped),
+1. Load and validate configuration (the operator-interface design); on a violation, exit with an
+   error naming every problem, before touching `/state`.
+2. Take `daemon.lock`; if another daemon holds it, exit with an error.
+3. Read the previous `heartbeat.json` (its last update marks when the previous daemon stopped),
    then write it with phase `starting`.
-3. Load and validate configuration; on a violation, exit with an error naming the setting.
 4. Confirm `/state` is writable; if not, exit.
 5. Run the capture `self_test` on `/data`; on failure, start with capture paused.
 6. Set phase `running` and enter the schedule loop. For each source with `daemon` entries in
@@ -360,7 +365,7 @@ exit code they managed before the daemon stopped.
 
 **Heartbeat.** The scheduling loop itself rewrites `heartbeat.json` on every pass (at least every
 30 seconds), so a stuck loop shows as a stale heartbeat. `wearstream healthcheck` reads only
-`/state` and exits non-zero when the heartbeat is more than 120 seconds old or records a capture
+`/state` and exits `1` (never `2`, which Docker reserves) when the heartbeat is more than 120 seconds old or records a capture
 pause; otherwise zero. A source waiting for a credential is healthy: the container works, and
 the log says what to do.
 
@@ -387,6 +392,7 @@ failure is logged at WARNING and escalated by the daemon's `run_crashed` and `jo
 | `backfill_day_abandoned` | WARNING | A day failed three backfill attempts |
 | `job_failing` | ERROR | A job reached the consecutive-failure threshold; action: read that job's recent `run_failed` lines |
 | `job_recovered` | INFO | A failing job succeeded |
+| `manual_run_finished` | INFO | The daemon saw a hand-started run's finish in the run log; adds its outcome (so it reaches the container's log) |
 | `source_waiting_for_auth` | ERROR | A source needs a credential; action: run `wearstream auth <source>` |
 | `source_resumed` | INFO | A waiting source has a new credential |
 | `source_rate_limited` | WARNING | A source entered a rate-limit cooldown; adds the end time |

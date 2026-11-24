@@ -7,9 +7,10 @@ snapshot collections; both are child processes started by the supervisor or by h
 
 ## Jobs
 
-- [ ] **WHOOP-CAPTURE-JOB-001**: The Whoop source shall declare a `partitioned` job `range` with schedule `17 * * * *`, a window of 8 days including the fire date, collections `sleep`, `recovery`, `workout` and `cycle`, a time limit of 5 minutes and a backfill pause of 60 seconds.
-- [ ] **WHOOP-CAPTURE-JOB-002**: The Whoop source shall declare a `snapshot` job `snapshots` with schedule `17 * * * *` and a time limit of 5 minutes.
-- [ ] **WHOOP-CAPTURE-JOB-003**: The Whoop source shall declare a `checks` job `checks` with schedule `37 * * * *` and a time limit of 10 minutes.
+- [ ] **WHOOP-CAPTURE-JOB-001**: The Whoop source shall declare a `partitioned` job `range` with schedule `17 * * * *`, a window of 8 days including the fire date, collections `sleep`, `recovery`, `workout` and `cycle`, a time limit of 5 minutes (minimum 3), and a backfill pause of 60 seconds (at least 30 when overridden).
+- [ ] **WHOOP-CAPTURE-JOB-002**: The Whoop source shall declare a `snapshot` job `snapshots` with schedule `17 * * * *` and a time limit of 5 minutes (minimum 3).
+- [ ] **WHOOP-CAPTURE-JOB-004**: The Whoop source shall give `range` and `snapshots` the same schedule, taken from `WEARSTREAM_WHOOP_SCHEDULE` when set, and configuration validation shall report as invalid a schedule whose minute is from 55 to 59 or from 0 to 5.
+- [ ] **WHOOP-CAPTURE-JOB-003**: The Whoop source shall declare a `checks` job `checks` with schedule `37 * * * *` and a time limit of 10 minutes (minimum 3).
 
 ## The `range` unit
 
@@ -28,7 +29,7 @@ snapshot collections; both are child processes started by the supervisor or by h
 ## Data requests
 
 - [ ] **WHOOP-CAPTURE-REQ-001**: The Whoop source shall send data requests to `https://api.prod.whoop.com` with a 30-second timeout, reusing one HTTP client per unit.
-- [ ] **WHOOP-CAPTURE-REQ-002**: The Whoop source shall pass every data-request attempt, retries included, through a sliding-window rate limiter per unit set to 90% of the configured requests per minute (default 60).
+- [ ] **WHOOP-CAPTURE-REQ-002**: The Whoop source shall pass every data-request attempt, retries included, through a sliding-window rate limiter per unit set to 90% of the configured requests per minute (default 60), rounded down and at least 1.
 - [ ] **WHOOP-CAPTURE-REQ-003**: If a Whoop data request times out, fails with a network error, or returns HTTP 429, 500, 502, 503 or 504, then the Whoop source shall retry it, up to 3 attempts in total, waiting the response's `Retry-After` seconds (capped at 60) when present and 2 seconds otherwise.
 - [ ] **WHOOP-CAPTURE-REQ-004**: If a Whoop data request returns an HTTP error status other than 401, 403, 429, 500, 502, 503 or 504, or fails with a protocol error that is not a network error, then the Whoop source shall fail it without retrying.
 - [ ] **WHOOP-CAPTURE-REQ-005**: The Whoop data-request retry shall never retry a `WhoopAuthError`.

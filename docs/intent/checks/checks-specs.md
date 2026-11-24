@@ -8,7 +8,7 @@ helpers define a capture); "a source's own checks" are the credential-health che
 
 ## Settings
 
-- [ ] **CHECKS-SET-001**: When the daemon starts, it shall validate every source's check settings and exit with an error naming the source and collection if completeness is enabled without an `event_date_source`, `event_date_source` is `payload` without an `event_date_field`, a family is not `freshness`, `completeness`, `schema` or `content`, or `recent_folders` is outside 1 to 60; a `reader` that is not set shall default to `json`.
+- [ ] **CHECKS-SET-001**: As part of configuration validation (OPERATOR-VAL-002), every process that reads check settings shall report as invalid, naming the source and collection, a setting where completeness is enabled without an `event_date_source`, `event_date_source` is `payload` without an `event_date_field`, a family is not `freshness`, `completeness`, `schema` or `content`, or `recent_folders` is outside 1 to 60; a `reader` that is not set shall default to `json`.
 - [ ] **CHECKS-SET-002**: The checks component shall name each collection check `<source>_<collection>_<family>`, with family `freshness`, `completeness`, `schema_drift` or `content_health`.
 - [ ] **CHECKS-SET-003**: The checks component shall read the capture tree only through the capture read helpers, and shall never create, modify or delete anything under `/data`.
 
@@ -64,17 +64,18 @@ helpers define a capture); "a source's own checks" are the credential-health che
 ## Reporting
 
 - [ ] **CHECKS-REPORT-001**: The checks component shall keep in `/state/checks/<source>.json`, written only under the source's checks lock, per check, the severity (`pass`, `warning` or `error`) and status (the specific finding) of its last unsuppressed result, since when, its key details (drifted or missing keys, corrupted files, gaps), when it was last logged, and whether it is currently suppressed and why.
-- [ ] **CHECKS-REPORT-002**: When a check's unsuppressed result has severity `warning` or `error` and the stored result is absent, passing, of a different severity or status, or of the same severity and status with different key details, the checks component shall log `check_failed` at ERROR with an `action`, or `check_warning` at WARNING, with the source, collection, family, status and details.
+- [ ] **CHECKS-REPORT-002**: When a check's unsuppressed result has severity `warning` or `error` and the stored result is absent, passing, of a different severity or status, or of the same severity and status with different key details, the checks component shall log `check_failed` at ERROR with an `action`, or `check_warning` at WARNING, with the source, collection, family, status and details, carrying any payload key names and file paths in the details as list values, never as object keys.
 - [ ] **CHECKS-REPORT-003**: When a check's unsuppressed result has the same failing severity, status and key details as stored and it was last logged 24 hours or more earlier, the checks component shall log the same event again with `since`.
 - [ ] **CHECKS-REPORT-004**: When a check's unsuppressed result passes and the stored severity was failing, the checks component shall log `check_recovered` at INFO; when the stored status is absent, it shall log nothing.
 - [ ] **CHECKS-REPORT-005**: When a check's result is `suppressed`, the checks component shall leave its stored severity, status, `since` and last-logged time unchanged, set the suppression flag, and log `check_suppressed` at INFO only when the check was not already suppressed; when a suppressed check next reports an unsuppressed result, it shall log `check_unsuppressed` at INFO and compare that result with the stored severity and status.
 - [ ] **CHECKS-REPORT-006**: When a checks unit finds a stored result for a collection check that is no longer in the source's settings, it shall remove it and log `check_removed` at INFO.
 - [ ] **CHECKS-REPORT-007**: The checks component shall log a check's event before saving its result.
+- [ ] **CHECKS-REPORT-009**: When a hand-started checks run logs a check's event, it shall not update that check's last-logged time, so the next scheduled run still reports the change in the container's log.
 - [ ] **CHECKS-REPORT-008**: When a checks unit finishes, it shall log `checks_finished` at INFO with the counts of checks passed, warned, failed and suppressed.
 
 ## Accepting a schema change
 
-- [ ] **CHECKS-ACCEPT-001**: When `wearstream accept-schema <source> <collection>` runs, it shall take `/state/locks/<source>.checks.lock` (waiting up to 11 minutes, exiting with code 5 if it can't), record the collection's current keys and the current `version` as its baseline atomically, reset the check's stored result, log `schema_baseline_set`, and exit with code 0.
+- [ ] **CHECKS-ACCEPT-001**: When `wearstream accept-schema <source> <collection>` runs, it shall take `/state/locks/<source>.checks.lock` (waiting up to the source's effective checks time limit plus 2 minutes, exiting with code 5 if it can't), record the collection's current keys and the current `version` as its baseline atomically, mark the check's stored result as accepted so the next checks run that passes it logs `check_recovered`, log `schema_baseline_set`, and exit with code 0.
 - [ ] **CHECKS-ACCEPT-002**: When `wearstream accept-schema <source> --all` runs, it shall apply CHECKS-ACCEPT-001 to every selected collection of the source whose stored schema-drift status is `drift` or `baseline_unreadable`, naming each in its output.
 - [ ] **CHECKS-ACCEPT-003**: If `wearstream accept-schema` is asked for a collection that is not selected or has no readable, non-empty payload in its trailing folders, then it shall change nothing and exit with code 2 and a message saying why.
 - [ ] **CHECKS-ACCEPT-004**: The checks component shall keep a deselected collection's baseline.

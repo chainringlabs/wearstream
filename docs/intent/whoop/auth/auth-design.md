@@ -46,7 +46,8 @@ Whoop unit. In order, it:
    promptly);
 3. parses the pasted text (see below) and checks that `state` matches;
 4. takes the Whoop source lock (`/state/locks/whoop.lock`) with a blocking `flock` that gives up
-   after 10 minutes, saying it is waiting for a running Whoop unit; if it gives up, it exits
+   after the longest effective time limit of Whoop's capture jobs plus 2 minutes (7 minutes by
+   default), saying it is waiting for a running Whoop unit; if it gives up, it exits
    without exchanging the code;
 5. exchanges the code for tokens and writes the result to the staging file `token.json.new`, as
    one credential exchange (below), under the token lock;
@@ -225,9 +226,10 @@ it; a dead token left in place does not.
 ## Token health check
 
 `whoop_token_health` runs with the Whoop checks job and reads only the token file, never Whoop.
-It fails at ERROR (action: run `wearstream auth whoop`) when `expires_at` is more than 90 minutes
-in the past, or the file is missing or unreadable. With hourly refreshes, a token that old means
-refreshes have stopped succeeding or stopped happening. While the source is waiting for a
+It fails at ERROR (action: run `wearstream auth whoop`) when `expires_at` is further in the past
+than the `range` job's interval plus 30 minutes (90 minutes at the default hourly schedule), or the
+file is missing or unreadable. A token that old means refreshes have stopped succeeding or stopped
+happening. While the source is waiting for a
 credential, in a rate-limit cooldown, or capture is paused, no refresh can happen and the
 supervisor is already telling the operator why, so the check reports `suppressed` with the
 reason instead of failing, under the checks component's suppression rule (which also covers the

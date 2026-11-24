@@ -135,8 +135,10 @@ One image, one entry point, `wearstream`, with these commands:
 | `wearstream run <source> <job> [--day D]` | The supervisor; an operator for a one-off | Executes one unit of work and exits |
 | `wearstream auth <source>` | The operator, once per source | Interactive credential bootstrap; writes to `/secrets` |
 | `wearstream accept-schema <source> <collection>` | The operator, after a schema-drift error | Accepts a vendor's payload change as the new expected shape |
+| `wearstream config` | The operator, before starting or after a change | Prints the effective configuration and every problem with it |
+| `wearstream version` | Anyone | Prints the version |
 | `wearstream status` | The operator, any time | Prints a summary from `/state`: last runs, backfill progress, failing checks |
-| `wearstream healthcheck` | The container health check | Exits non-zero when the supervisor's heartbeat in `/state` is stale or capture is paused because `/data` or `/state` is unusable |
+| `wearstream healthcheck` | The container health check | Exits `1` when the supervisor's heartbeat in `/state` is stale, capture is paused because `/data` or `/state` is unusable, or the configuration is invalid |
 
 The operator reaches `auth` and `status` by running them in the existing container
 (`docker exec -it wearstream wearstream auth whoop`) or in a one-off container with the same
@@ -235,10 +237,12 @@ cascades to every source that relies on it.
   is limited to personal use; it is the expected future path if its coverage grows, and is
   out of scope for v1. One Garmin sign-in serves a whole run.
 - **The operator log is the interface.** Logs go to stdout, human-readable by default and
-  JSON Lines with `LOG_FORMAT=json`. Every line carries a stable event name. Anything that
+  JSON Lines with `WEARSTREAM_LOG_FORMAT=json`. Every line carries a stable event name. Anything that
   needs a person is logged at `ERROR` with a plain-language `action` field saying what to do.
   Logs never contain a token, client secret or password, including inside a traceback:
-  tracebacks are rendered without local variables.
+  tracebacks are rendered without local variables or exception messages. The one exception is a
+  troubleshooting switch that lets the Garmin library log, which warns on every start while it
+  is on.
 - **Python.** WearStream is Python because `garminconnect`, which signs in to Garmin through
   browser TLS impersonation, has no maintained equivalent elsewhere, and because the Whoop
   token lifecycle rules above exist as tested Python. The workload is I/O-bound and runs a

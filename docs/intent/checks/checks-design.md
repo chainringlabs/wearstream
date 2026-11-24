@@ -203,6 +203,12 @@ The event is logged before the result is saved, so a unit killed between the two
 an event on its next run; it never loses one. An unreadable results document is handled like any
 `/state` document (logged as `state_document_reset` and treated as absent).
 
+Details carry payload key names and file paths as list values, never as object keys, so the log's
+redaction filter (which matches field names) can't mistake a payload key such as `signature` for a
+credential. A hand-started checks run prints its events to the operator's terminal, not the
+container's log, so it doesn't update a check's last-logged time: the next scheduled run still
+reports the change where alert rules can see it.
+
 Every run ends with `checks_finished` at INFO: counts of checks passed, warned, failed and
 suppressed. `wearstream status` lists the checks that are currently failing, from the same
 document.
@@ -210,11 +216,12 @@ document.
 ## Accepting a schema change: `wearstream accept-schema`
 
 `wearstream accept-schema <source> <collection>` records the collection's current keys as its
-baseline, so the next run passes, and resets the check's stored result. With `--all` instead of a
+baseline, so the next run passes, and marks the check's stored result as accepted, so that run logs
+`check_recovered` and closes any alert on the earlier `check_failed`. With `--all` instead of a
 collection, it does this for every collection of the source whose stored schema-drift status is
 `drift` or `baseline_unreadable`, naming each in its output. It takes the source's checks lock
-(`/state/locks/<source>.checks.lock`, waiting up to 11 minutes, longer than a checks unit can hold
-it), so it never interleaves with a
+(`/state/locks/<source>.checks.lock`, waiting up to the source's effective checks time limit plus
+2 minutes, longer than a checks unit can hold it), so it never interleaves with a
 checks unit, writes atomically, and logs `schema_baseline_set` for each collection. It refuses, with
 a message, for a collection that isn't selected or has no readable, non-empty payload to accept. It
 is the supported way to accept a change: the image has no shell, and an operator needn't know
