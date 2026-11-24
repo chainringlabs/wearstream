@@ -29,7 +29,7 @@ SNAPSHOT = (
     Path(__file__).resolve().parent.parent
     / "docs/intent/garmin/decisions/personal-api-openapi.json"
 )
-_MARKER = "JSON.parse('{\"openapi\""
+_MARKER = 'JSON.parse(\'{"openapi"'
 
 
 def _get(url: str) -> str:
@@ -69,9 +69,7 @@ def diff(old: dict, new: dict) -> list[str]:
     old_ops, new_ops = operations(old), operations(new)
     lines = [f"+ {k}" for k in sorted(new_ops.keys() - old_ops.keys())]
     lines += [f"- {k}" for k in sorted(old_ops.keys() - new_ops.keys())]
-    lines += [
-        f"~ {k}" for k in sorted(old_ops.keys() & new_ops.keys()) if old_ops[k] != new_ops[k]
-    ]
+    lines += [f"~ {k}" for k in sorted(old_ops.keys() & new_ops.keys()) if old_ops[k] != new_ops[k]]
     old_s = old.get("components", {}).get("schemas", {})
     new_s = new.get("components", {}).get("schemas", {})
     lines += [f"+ schema {k}" for k in sorted(new_s.keys() - old_s.keys())]
